@@ -1,0 +1,144 @@
+{
+	"pools": [
+		{
+			"id": "USDT",
+			"name": "USDT",
+			"deposit": "fUSDT",
+			"closed": false,
+			"boost": true,
+			"boost_multiplier": 2.5,
+			"stake": 500.00,
+			"size_in_farm": 0.034,
+			"profitability": 90,
+			"earnings_num": 1.1814,
+			"earnings_amount": 400,
+			"hourly": {
+				"percentage": 0.5245,
+				"farm": 0.01145,
+				"usd": 1.93455
+			},
+			"daily": {
+				"percentage": 4.5245,
+				"farm": 0.42445,
+				"usd": 46.42851
+			},
+			"weekly": {
+				"percentage": 32.5245,
+				"farm": 2.13145,
+				"usd": 325.00145
+			}
+		},
+		{
+			"id": "USDC",
+			"name": "USDC",
+			"deposit": "fUSDC",
+			"closed": false,
+			"boost": false,
+			"boost_multiplier": null,
+			"stake": 100.00,
+			"size_in_farm": 0.034,
+			"profitability": 90,
+			"earnings_num": 1.1814,
+			"earnings_amount": 400,
+			"hourly": {
+				"percentage": 0.5245,
+				"farm": 0.01145,
+				"usd": 1.93455
+			},
+			"daily": {
+				"percentage": 4.5245,
+				"farm": 0.42445,
+				"usd": 46.42851
+			},
+			"weekly": {
+				"percentage": 32.5245,
+				"farm": 2.13145,
+				"usd": 325.00145
+			}
+		},
+		{
+			"id": "DAI",
+			"name": "DAI",
+			"deposit": "fDAI",
+			"closed": true,
+			"boost": false,
+			"boost_multiplier": null,
+			"stake": 10.00,
+			"size_in_farm": 1.340,
+			"profitability": 393,
+			"earnings_num": 1.1814,
+			"earnings_amount": 400,
+			"hourly": {
+				"percentage": 0.5245,
+				"farm": 0.01145,
+				"usd": 1.93455
+			},
+			"daily": {
+				"percentage": 4.5245,
+				"farm": 0.42445,
+				"usd": 46.42851
+			},
+			"weekly": {
+				"percentage": 32.5245,
+				"farm": 2.13145,
+				"usd": 325.00145
+			}
+		},
+		{
+			"id": "RENTBC",
+			"name": "RENTBC",
+			"deposit": "fRENTBC",
+			"closed": false,
+			"boost": false,
+			"boost_multiplier": null,
+			"stake": 500.00,
+			"size_in_farm": 0.034,
+			"profitability": 393,
+			"earnings_num": null,
+			"earnings_amount": 211,
+			"hourly": {
+				"percentage": 0.5245,
+				"farm": 0.01145,
+				"usd": 1.93455
+			},
+			"daily": {
+				"percentage": 4.5245,
+				"farm": 0.42445,
+				"usd": 46.42851
+			},
+			"weekly": {
+				"percentage": 32.5245,
+				"farm": 2.13145,
+				"usd": 325.00145
+			}
+		},
+		{
+			"id": "WBTC",
+			"name": "WBTC",
+			"deposit": "fWBTC",
+			"closed": false,
+			"boost": false,
+			"boost_multiplier": null,
+			"stake": 500.00,
+			"size_in_farm": 0.034,
+			"profitability": 393,
+			"earnings_num": null,
+			"earnings_amount": 50,
+			"hourly": {
+				"percentage": 0.5245,
+				"farm": 0.01145,
+				"usd": 1.93455
+			},
+			"daily": {
+				"percentage": 4.5245,
+				"farm": 0.42445,
+				"usd": 46.42851
+			},
+			"weekly": {
+				"percentage": 32.5245,
+				"farm": 2.13145,
+				"usd": 325.00145
+			}
+		}
+	]
+}
