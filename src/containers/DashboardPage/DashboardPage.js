@@ -61,7 +61,7 @@ export class DashboardPage extends Component {
 		} else {
 			dataPools = [data.pools.find(o => o.id === selectedPool.value)];
 		}
-		console.log({ dataPools });
+
 		return (
 			<React.Fragment>
 				{/* Navigation */}
@@ -381,7 +381,7 @@ export class DashboardPage extends Component {
 									{/* Pool List */}
 									<Pane display="flex" flexWrap="wrap" marginTop={majorScale(3)}>
 										{dataPools.map(pool => (
-											<Pane flex="0 0 calc(33% - 8px)" margin={minorScale(1)}>
+											<Pane key={`pool-${pool.id}`} flex="0 0 calc(33% - 8px)" margin={minorScale(1)}>
 												<Pane
 													elevation={1}
 													width="100%"
