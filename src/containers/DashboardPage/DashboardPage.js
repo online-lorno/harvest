@@ -56,7 +56,7 @@ export class DashboardPage extends Component {
 		} = this.state;
 
 		let dataPools = [];
-		if (!selectedPool || selectedPool.value=== '-') {
+		if (!selectedPool || selectedPool.value === '-') {
 			dataPools = data.pools;
 		} else {
 			dataPools = [data.pools.find(o => o.id === selectedPool.value)];
@@ -361,7 +361,7 @@ export class DashboardPage extends Component {
 								{/* Chart */}
 								<Pane marginBottom={majorScale(7)}>
 									<Paragraph textTransform="uppercase">Farm earned overtime</Paragraph>
-									<img src={ImageChart} alt="chart" style={{ width: '100%' }}/>
+									<img src={ImageChart} alt="chart" style={{ width: '100%' }} />
 								</Pane>
 
 								{/* Pools */}
@@ -485,7 +485,7 @@ export class DashboardPage extends Component {
 														<Pane display="flex">
 															<Pane flex={0.5}>
 																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.hourly.usd}</Text>	
+																	<Text>{pool.hourly.usd}</Text>
 																</Pane>
 															</Pane>
 															<Pane flex={0.5}>
