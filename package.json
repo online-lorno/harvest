@@ -6,7 +6,8 @@
 		"start": "npm run start:development",
 		"start:development": "NODE_ENV=development PORT=9000 node scripts/start.js",
 		"build": "node scripts/build.js",
-		"test": "node scripts/test.js"
+		"test": "node scripts/test.js",
+		"heroku-postbuild": "npm run build && npx serve -s build"
 	},
 	"dependencies": {
 		"@babel/core": "7.9.0",
