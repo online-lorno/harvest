@@ -22,12 +22,18 @@ import {
 	CaretDownIcon,
 	//utils
 	majorScale,
-	minorScale
+	minorScale,
+	Label
 } from 'evergreen-ui';
 
 import data from './../../data.json';
 import ImageChart from './../../images/chart.png';
 import GeneralHelper from './../../helpers/general';
+
+// Css files
+import '../../styles/fonts/fonts.css';
+import '../../styles/global-overrides.css';
+import './DashboardPage.css';
 
 // Added Harvest submodules
 import detectEthereumProvider from '@metamask/detect-provider';
@@ -37,7 +43,6 @@ import {UnderlyingBalances} from '../../submodules/dashboard/src/lib/tokens';
 
 
 const {ethers, utils} = harvest;
-const etherUtils = ethers.utils;
 
 export class DashboardPage extends Component {
 	
@@ -48,7 +53,7 @@ export class DashboardPage extends Component {
 	state = {
 		infuraId: '3bda563b54a44db595996726fab75a04',
 		id: '',
-		// tabs
+		// tabs	
 		selectedTabIndex: 1,
 		tabs: ['Pool Performance', 'My Farms'],
 		// pools
@@ -169,7 +174,7 @@ export class DashboardPage extends Component {
 		return (
 			<React.Fragment>
 				{/* Navigation */}
-				<Pane display="flex" justifyContent="center" background="tint2" padding={majorScale(2)}>
+				{/* <Pane display="flex" justifyContent="center" background="tint2" padding={majorScale(2)}>
 					<Pane width={1200} display="flex" justifyContent="flex-end">
 						<Popover
 							position="bottom-right"
@@ -189,24 +194,25 @@ export class DashboardPage extends Component {
 							<Button iconAfter={CaretDownIcon}>{GeneralHelper.ellipseId(id)}</Button>
 						</Popover>
 					</Pane>
-				</Pane>
+				</Pane> */}
 
 				{/* Dashboard Header */}
-				<Pane display="flex" justifyContent="center" background="black" padding={majorScale(2)}>
+				<Pane className="header" display="flex" justifyContent="center" padding={majorScale(2)}>
 					<Pane width={1200} display="flex">
 						<Pane flex={0.4}>
-							<Heading size={800} color="#F2C94C" marginBottom={majorScale(2)}>{GeneralHelper.ellipseId(id, 7)}</Heading>
+							<Heading size={800} color="#F2C94C" marginBottom={majorScale(2)}>YieldFarm.io</Heading>
 							<Pane display="flex" marginBottom={majorScale(3)}>
 								<Pane flex={0.6}>
-									<Text color="#E0E0E0">You’re earning $1.93455 hourly thats $46.42851 daily and $325.00145 weekly</Text>
+									<Text color="#E0E0E0">...</Text>
+									<Button appearance="primary" intent="success" iconBefore={DollarIcon} onClick={this.connectMetamask.bind(this)}>Connect Wallet</Button>
 								</Pane>
 							</Pane>
-							<Button appearance="primary" intent="success" iconBefore={DollarIcon} onClick={this.connectMetamask.bind(this)}>Connect Wallet</Button>
-							<Button iconBefore={DollarIcon} onClick={this.getBalances.bind(this)}>Load Balances</Button>
+							<Button appearance="primary" intent="success" iconBefore={DollarIcon} onClick={this.connectMetamask.bind(this)}>Go to Harvest.finance</Button>
 						</Pane>
 						<Pane flex={0.6}>
 							<Pane display="flex" justifyContent="flex-end" marginBottom={majorScale(2)}>
 								<Pane
+									elevation={1}
 									background="white"
 									display="flex"
 									alignItems="center"
@@ -224,6 +230,7 @@ export class DashboardPage extends Component {
 									</Pane>
 								</Pane>
 								<Pane
+									elevation={1}
 									background="white"
 									display="flex"
 									alignItems="center"
@@ -241,6 +248,7 @@ export class DashboardPage extends Component {
 									</Pane>
 								</Pane>
 								<Pane
+									elevation={1}
 									background="white"
 									display="flex"
 									alignItems="center"
@@ -268,20 +276,6 @@ export class DashboardPage extends Component {
 				{/* Dashboard Content */}
 				<Pane display="flex" justifyContent="center" paddingY={majorScale(2)}>
 					<Pane width={1200}>
-						<Tablist marginBottom={16} flexBasis={240} marginRight={24}>
-							{this.state.tabs.map((tab, index) => (
-								<Tab
-									key={tab}
-									id={tab}
-									onSelect={() => this.setState({ selectedTabIndex: index })}
-									isSelected={index === selectedTabIndex}
-									aria-controls={`panel-${tab}`}
-								>
-									{tab}
-								</Tab>
-							))}
-						</Tablist>
-
 						<Pane display="flex" marginTop={majorScale(6)}>
 							{/* Left Content */}
 							<Pane flex={0.3}>
@@ -289,21 +283,23 @@ export class DashboardPage extends Component {
 								<Paragraph color="#BDBDBD">Deposit stablecoins, LP tokens or FARM to learn FARM</Paragraph>
 
 								<Paragraph marginY={majorScale(3)} textTransform="uppercase">Your overall farming stats</Paragraph>
-								<Pane paddingLeft={majorScale(2)} marginBottom={majorScale(6)}>
-									<Paragraph>Unstaked Farm</Paragraph>
-									<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>1.5145</Heading>
+								<Pane marginBottom={majorScale(6)}>
+									
+									<Pane marginBottom={majorScale(2)}>									
+										<Paragraph>Unstaked Farm</Paragraph>
+										<Label class="hf-number xl" size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>1.5145</Label>
+									</Pane>
 
-									<Paragraph>Total Farm staked on Profit sharing</Paragraph>
-									<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>2.5000</Heading>
-
-									<Paragraph>Gain in %</Paragraph>
-									<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>32.52450</Heading>
-
-									<Paragraph>$FARM Earned</Paragraph>
-									<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>2.13145</Heading>
-
-									<Paragraph>Currrent Return in $</Paragraph>
-									<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>111,132,422,123,492.42093</Heading>
+									<Pane marginBottom={majorScale(2)}>		
+										<Paragraph>Total Farm staked on Profit Sharing</Paragraph>
+										<Label class="hf-number xl" size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>2.5000</Label>
+									</Pane>
+									
+									<Pane marginBottom={majorScale(2)}>	
+										<Paragraph>$FARM earned</Paragraph>
+										<Label class="hf-number xl" size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>2.13145</Label>
+									</Pane>
+									
 								</Pane>
 
 								<Pane display="flex">
@@ -327,7 +323,6 @@ export class DashboardPage extends Component {
 										</Button>
 									</Popover>
 								</Pane>
-
 								<Pane display="flex" >
 									<Pane flex={0.6}>
 										<Text>Hourly</Text>
@@ -463,18 +458,13 @@ export class DashboardPage extends Component {
 
 							{/* Right Content */}
 							<Pane flex={0.7} paddingLeft={minorScale(9)}>
-								{/* Chart */}
-								<Pane marginBottom={majorScale(7)}>
-									<Paragraph textTransform="uppercase">Farm earned overtime</Paragraph>
-									<img src={ImageChart} alt="chart" style={{ width: '100%' }} />
-								</Pane>
 
 								{/* Pools */}
 								<Pane>
 									<Pane display="flex">
 										<Pane flex={0.5}>
-											<Paragraph textTransform="uppercase">Pools participated</Paragraph>
-											<Paragraph color="#BDBDBD">These are the list pools that you have staked in.</Paragraph>
+											<Heading size={400} marginTop="default" textTransform="uppercase">Pools participated</Heading>
+											<Paragraph size={300} color="muted">These are the list pools that you have staked in.</Paragraph>
 										</Pane>
 										<Pane flex={0.5}>
 											<Pane display="flex" justifyContent="flex-end">
@@ -553,136 +543,6 @@ export class DashboardPage extends Component {
 														<Pane flex={0.5}>
 															<Pane display="flex" justifyContent="flex-end">
 																<Text color="#219653">{`${pool.earnings_num ? `${pool.earnings_num} = ` : ''}$${pool.earnings_amount}`}</Text>
-															</Pane>
-														</Pane>
-													</Pane>
-												</Pane>
-
-												<Pane display="flex" paddingX={majorScale(2)} paddingY={majorScale(1)}>
-													<Pane flex={0.4}>
-														<Text color="#BDBDBD">Hourly</Text>
-													</Pane>
-													<Pane flex={0.6}>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.hourly.percentage}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.hourly.farm}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.hourly.usd}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-													</Pane>
-												</Pane>
-												<Pane display="flex" paddingX={majorScale(2)} paddingY={majorScale(1)}>
-													<Pane flex={0.4}>
-														<Text color="#BDBDBD">Daily</Text>
-													</Pane>
-													<Pane flex={0.6}>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.daily.percentage}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.daily.farm}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.daily.usd}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-													</Pane>
-												</Pane>
-												<Pane display="flex" paddingX={majorScale(2)} paddingY={majorScale(1)}>
-													<Pane flex={0.4}>
-														<Text color="#BDBDBD">Weekly</Text>
-													</Pane>
-													<Pane flex={0.6}>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.weekly.percentage}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.weekly.farm}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.weekly.usd}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
-																</Pane>
 															</Pane>
 														</Pane>
 													</Pane>

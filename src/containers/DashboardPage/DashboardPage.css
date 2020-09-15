@@ -1,0 +1,26 @@
+
+/* Header */
+.header {
+    background-image: url('../../images/Bg.png');
+    background-repeat: repeat-x;
+}
+
+/* Numbers */
+.hf-number {
+    font-family: "SF Mono", monospace;
+    font-weight: 500;
+    color: #219653;
+}
+
+.hf-number.xl {
+    font-size: 24px;
+}
+
+.hf-number.md {
+    font-size: 16px;
+}
+
+.hf-number.sm {
+    font-size: 12px;
+    font-weight: 300;
+}
