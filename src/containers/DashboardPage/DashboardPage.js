@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
 	// components
@@ -29,6 +29,7 @@ import {
 	Table,
 	LabTestIcon
 } from 'evergreen-ui';
+import { Chart } from 'react-charts';
 
 import data from './../../data.json';
 
@@ -89,6 +90,12 @@ export class DashboardPage extends Component {
 		totalValue: 0,
 		totalRewards: 0,
 		usdValue: 0
+	});
+	let dataPools = [];
+	if (!state.selectedPool || state.selectedPool.value === '-') {
+		dataPools = data.pools;
+	} else {
+		dataPools = [data.pools.find(o => o.id === state.selectedPool.value)];
 	}
 
 	componentDidMount(){
@@ -192,11 +199,11 @@ export class DashboardPage extends Component {
 
 		// combine all underlying positions	
 		let aggregateUnderlyings = new UnderlyingBalances();
-	  
+
 		underlyings.reduce((acc, next) => {
-		  return acc.combine(next.underlyingBalances);
+			return acc.combine(next.underlyingBalances);
 		}, aggregateUnderlyings);
-	  
+
 		aggregateUnderlyings = aggregateUnderlyings
 		  .toList()
 		  .filter((underlying) => !underlying.balance.isZero())
@@ -246,7 +253,15 @@ export class DashboardPage extends Component {
 			}
 		});
 
-	}
+	const chartData = React.useMemo(
+		() => [
+			{
+				label: 'Series 1',
+				data: [[0, 1], [1, 2], [2, 4], [3, 2], [4, 7]]
+			}
+		],
+		[]
+	);
 
 	actionLinkOpenHarvestFi() {
 		window.open("https://harvest.finance","_blank");
@@ -260,12 +275,13 @@ export class DashboardPage extends Component {
 			selectedPool
 		} = this.state;
 
-		let dataPools = [];
-		if (!selectedPool || selectedPool.value === '-') {
-			dataPools = data.pools;
-		} else {
-			dataPools = [data.pools.find(o => o.id === selectedPool.value)];
-		}
+	const axes = React.useMemo(
+		() => [
+			{ primary: true, type: 'linear', position: 'bottom' },
+			{ type: 'linear', position: 'left' }
+		],
+		[]
+	);
 
 		if (this.state.provider) {
 			this.getBalances();
@@ -411,6 +427,7 @@ export class DashboardPage extends Component {
 											<Button appearance="primary" intent="success">Claim all rewards</Button> */}
 										</Pane>
 									</Pane>
+								</Pane>
 
 									{/* Pool List */}
 									<Pane>
@@ -482,4 +499,9 @@ export class DashboardPage extends Component {
 	}
 }
 
+DashboardPage.propTypes = {
+	reset: PropTypes.func.isRequired
+};
+
 export default DashboardPage;
+
