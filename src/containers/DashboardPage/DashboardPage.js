@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import {
 	// components
@@ -24,6 +24,7 @@ import {
 	majorScale,
 	minorScale
 } from 'evergreen-ui';
+import { Chart } from 'react-charts';
 
 import data from './../../data.json';
 import ImageChart from './../../images/chart.png';
@@ -32,20 +33,17 @@ import GeneralHelper from './../../helpers/general';
 // Added Harvest submodules
 import detectEthereumProvider from '@metamask/detect-provider';
 import harvest from '../../submodules/dashboard/src/lib/index';
-import {PoolManager} from '../../submodules/dashboard/src/lib/manager';
-import {UnderlyingBalances} from '../../submodules/dashboard/src/lib/tokens';
+import { PoolManager } from '../../submodules/dashboard/src/lib/manager';
+import { UnderlyingBalances } from '../../submodules/dashboard/src/lib/tokens';
 
-
-const {ethers, utils} = harvest;
+const { ethers, utils } = harvest;
 const etherUtils = ethers.utils;
 
-export class DashboardPage extends Component {
-	
-	static propTypes = {
-		reset: PropTypes.func.isRequired
-	}
-
-	state = {
+function DashboardPage({
+	reset,
+	pageProps
+}) {
+	const [state, setState] = useState({
 		infuraId: '3bda563b54a44db595996726fab75a04',
 		id: '',
 		// tabs
@@ -66,638 +64,657 @@ export class DashboardPage extends Component {
 		totalValue: 0,
 		totalRewards: 0,
 		usdValue: 0
+	});
+	let dataPools = [];
+	if (!state.selectedPool || state.selectedPool.value === '-') {
+		dataPools = data.pools;
+	} else {
+		dataPools = [data.pools.find(o => o.id === state.selectedPool.value)];
 	}
 
-	setProvider(provider) {
+	const setProvider = provider => {
 		provider = new ethers.providers.Web3Provider(provider);
-		
+
 		let signer;
 		try {
-		  signer = provider.getSigner();
-		} catch (e) {console.log(e);};
+			signer = provider.getSigner();
+		} catch (e) { console.log(e); };
 		const manager = harvest.manager.PoolManager.allPastPools(signer ? signer : provider);
-	
-		this.setState({provider, signer, manager});
-		
-		console.log({provider, signer, manager});
-		
+
+		setState(prevState => ({ ...prevState, provider, signer, manager }));
+
+		console.log({ provider, signer, manager });
+
 		// get the user address
-		signer.getAddress().then((address) => this.setState({address}));
+		signer.getAddress().then((address) => setState(prevState => ({ ...prevState, address })));
 
 		console.log(signer.getBalance());
-		
-	}
-	
-	connectMetamask() {	
-		detectEthereumProvider().then((provider) => { window.ethereum.enable().then(() => this.setProvider(provider));
+	};
+
+	const connectMetamask = () => {
+		detectEthereumProvider().then((provider) => {
+			window.ethereum.enable().then(() => setProvider(provider));
 		});
-	}
-	
+	};
 
-	async getBalances() {
+	const getBalances = async () => {
+		const man = PoolManager.allPastPools(state.provider);
+		const summaries = await man.summary(state.address);
+		const underlyings = await man.underlying(state.address, true);
 
-		const man = PoolManager.allPastPools(this.state.provider);
-		const summaries = await man.summary(this.state.address);
-		const underlyings = await man.underlying(this.state.address, true);
-		
-		console.log(this.state.address);
-		console.log(this.state.provider);
-		console.log(this.state.summaries);
+		console.log(state.address);
+		console.log(state.provider);
+		console.log(state.summaries);
 
 		let totalRewards = ethers.BigNumber.from(0);
 		let totalValue = ethers.BigNumber.from(0);
 		const positions = summaries
 			.map(utils.prettyPosition)
 			.filter((p) => p.earnedRewards !== '0.0' || p.stakedBalance !== '0.0');
-	  
+
 		summaries.forEach((pos) => {
-		  totalRewards = totalRewards.add(pos.summary.earnedRewards);
-		  totalValue = totalValue.add(pos.summary.usdValueOf);
+			totalRewards = totalRewards.add(pos.summary.earnedRewards);
+			totalValue = totalValue.add(pos.summary.usdValueOf);
 		});
-	  
+
 		// combine all underlying positions
 		let aggregateUnderlyings = new UnderlyingBalances();
-	  
+
 		underlyings.reduce((acc, next) => {
-		  return acc.combine(next.underlyingBalances);
+			return acc.combine(next.underlyingBalances);
 		}, aggregateUnderlyings);
-	  
+
 		aggregateUnderlyings = aggregateUnderlyings
-		  .toList()
-		  .filter((underlying) => !underlying.balance.isZero())
-		  .map((u) => {
-			  return {
-			  name: u.asset.name,
-			  balance: ethers.utils.formatUnits(u.balance, u.asset.decimals)};
-		  });
-	  
+			.toList()
+			.filter((underlying) => !underlying.balance.isZero())
+			.map((u) => {
+				return {
+					name: u.asset.name,
+					balance: ethers.utils.formatUnits(u.balance, u.asset.decimals)
+				};
+			});
+
 		const output = {
-		  positions,
-		  totalRewards: totalRewards.toString(),
-		  totalValue: totalValue.toString(),
-		  underlyings: aggregateUnderlyings
+			positions,
+			totalRewards: totalRewards.toString(),
+			totalValue: totalValue.toString(),
+			underlyings: aggregateUnderlyings
 		};
 
 		console.log(output);
 
-		this.setState({ 
+		setState(prevState => ({
+			...prevState,
 			underlyings: aggregateUnderlyings,
 			totalValue: utils.prettyMoney(totalValue),
 			totalRewards: utils.prettyMoney(totalRewards)
-		});
+		}));
+	};
 
-	}
+	const chartData = React.useMemo(
+		() => [
+			{
+				label: 'Series 1',
+				data: [[0, 1], [1, 2], [2, 4], [3, 2], [4, 7]]
+			}
+		],
+		[]
+	);
 
-	render() {
-		const {
-			id,
-			selectedTabIndex,
-			pools,
-			selectedPool
-		} = this.state;
+	const series = React.useMemo(
+		() => ({
+			showPoints: false
+		}),
+		[]
+	);
 
-		let dataPools = [];
-		if (!selectedPool || selectedPool.value === '-') {
-			dataPools = data.pools;
-		} else {
-			dataPools = [data.pools.find(o => o.id === selectedPool.value)];
-		}
+	const axes = React.useMemo(
+		() => [
+			{ primary: true, type: 'linear', position: 'bottom' },
+			{ type: 'linear', position: 'left' }
+		],
+		[]
+	);
 
-		// Log the table
-		
-
-		return (
-			<React.Fragment>
-				{/* Navigation */}
-				<Pane display="flex" justifyContent="center" background="tint2" padding={majorScale(2)}>
-					<Pane width={1200} display="flex" justifyContent="flex-end">
-						<Popover
-							position="bottom-right"
-							content={
-								<Menu>
-									<Menu.Group>
-										<Menu.Item icon={PeopleIcon}>{GeneralHelper.ellipseId(id)}</Menu.Item>
-										<Menu.Item icon={PeopleIcon}>{GeneralHelper.ellipseId(id)}</Menu.Item>
-									</Menu.Group>
-									<Menu.Divider />
-									<Menu.Group>
-										<Menu.Item icon={AddIcon} intent="success">Add an account</Menu.Item>
-									</Menu.Group>
-								</Menu>
-							}
-						>
-							<Button iconAfter={CaretDownIcon}>{GeneralHelper.ellipseId(id)}</Button>
-						</Popover>
-					</Pane>
+	return (
+		<React.Fragment>
+			{/* Navigation */}
+			<Pane display="flex" justifyContent="center" background="tint2" padding={majorScale(2)}>
+				<Pane width={1200} display="flex" justifyContent="flex-end">
+					<Popover
+						position="bottom-right"
+						content={
+							<Menu>
+								<Menu.Group>
+									<Menu.Item icon={PeopleIcon}>{GeneralHelper.ellipseId(state.id)}</Menu.Item>
+									<Menu.Item icon={PeopleIcon}>{GeneralHelper.ellipseId(state.id)}</Menu.Item>
+								</Menu.Group>
+								<Menu.Divider />
+								<Menu.Group>
+									<Menu.Item icon={AddIcon} intent="success">Add an account</Menu.Item>
+								</Menu.Group>
+							</Menu>
+						}
+					>
+						<Button iconAfter={CaretDownIcon}>{GeneralHelper.ellipseId(state.id)}</Button>
+					</Popover>
 				</Pane>
+			</Pane>
 
-				{/* Dashboard Header */}
-				<Pane display="flex" justifyContent="center" background="black" padding={majorScale(2)}>
-					<Pane width={1200} display="flex">
-						<Pane flex={0.4}>
-							<Heading size={800} color="#F2C94C" marginBottom={majorScale(2)}>{GeneralHelper.ellipseId(id, 7)}</Heading>
-							<Pane display="flex" marginBottom={majorScale(3)}>
-								<Pane flex={0.6}>
-									<Text color="#E0E0E0">You’re earning $1.93455 hourly thats $46.42851 daily and $325.00145 weekly</Text>
-								</Pane>
-							</Pane>
-							<Button appearance="primary" intent="success" iconBefore={DollarIcon} onClick={this.connectMetamask.bind(this)}>Connect Wallet</Button>
-							<Button iconBefore={DollarIcon} onClick={this.getBalances.bind(this)}>Load Balances</Button>
-						</Pane>
-						<Pane flex={0.6}>
-							<Pane display="flex" justifyContent="flex-end" marginBottom={majorScale(2)}>
-								<Pane
-									background="white"
-									display="flex"
-									alignItems="center"
-									flexDirection="column"
-									paddingX={majorScale(1)}
-									paddingTop={majorScale(3)}
-									paddingBottom={majorScale(1)}
-									marginLeft={majorScale(2)}
-									minWidth={200}
-								>
-									<Heading size={900} marginBottom={majorScale(1)}>{this.state.totalValue}</Heading>
-									<Pane>
-										<Text size={500}>Total account value</Text>
-										<ShareIcon marginLeft={minorScale(1)} />
-									</Pane>
-								</Pane>
-								<Pane
-									background="white"
-									display="flex"
-									alignItems="center"
-									flexDirection="column"
-									paddingX={majorScale(1)}
-									paddingTop={majorScale(3)}
-									paddingBottom={majorScale(1)}
-									marginLeft={majorScale(2)}
-									minWidth={200}
-								>
-									<Heading size={900} marginBottom={majorScale(1)}>1.000</Heading>
-									<Pane>
-										<Text size={500}>Staked $FARM</Text>
-										<ShareIcon marginLeft={minorScale(1)} />
-									</Pane>
-								</Pane>
-								<Pane
-									background="white"
-									display="flex"
-									alignItems="center"
-									flexDirection="column"
-									paddingX={majorScale(1)}
-									paddingTop={majorScale(3)}
-									paddingBottom={majorScale(1)}
-									marginLeft={majorScale(2)}
-									minWidth={200}
-								>
-									<Heading size={900} marginBottom={majorScale(1)}>1.413</Heading>
-									<Pane>
-										<Text size={500}>Unstaked $FARM</Text>
-										<ShareIcon marginLeft={minorScale(1)} />
-									</Pane>
-								</Pane>
-							</Pane>
-							<Pane display="flex" justifyContent="flex-end">
-								<Button appearance="primary" intent="success">Stake all 🚜 to Profit Share</Button>
+			{/* Dashboard Header */}
+			<Pane display="flex" justifyContent="center" background="black" padding={majorScale(2)}>
+				<Pane width={1200} display="flex">
+					<Pane flex={0.4}>
+						<Heading size={800} color="#F2C94C" marginBottom={majorScale(2)}>{GeneralHelper.ellipseId(state.id, 7)}</Heading>
+						<Pane display="flex" marginBottom={majorScale(3)}>
+							<Pane flex={0.6}>
+								<Text color="#E0E0E0">You’re earning $1.93455 hourly thats $46.42851 daily and $325.00145 weekly</Text>
 							</Pane>
 						</Pane>
+						<Button appearance="primary" intent="success" iconBefore={DollarIcon} onClick={() => connectMetamask()}>Connect Wallet</Button>
+						<Button iconBefore={DollarIcon} onClick={() => getBalances()}>Load Balances</Button>
 					</Pane>
-				</Pane>
-
-				{/* Dashboard Content */}
-				<Pane display="flex" justifyContent="center" paddingY={majorScale(2)}>
-					<Pane width={1200}>
-						<Tablist marginBottom={16} flexBasis={240} marginRight={24}>
-							{this.state.tabs.map((tab, index) => (
-								<Tab
-									key={tab}
-									id={tab}
-									onSelect={() => this.setState({ selectedTabIndex: index })}
-									isSelected={index === selectedTabIndex}
-									aria-controls={`panel-${tab}`}
-								>
-									{tab}
-								</Tab>
-							))}
-						</Tablist>
-
-						<Pane display="flex" marginTop={majorScale(6)}>
-							{/* Left Content */}
-							<Pane flex={0.3}>
-								<Heading size={700} color="#1D8248" marginBottom={minorScale(3)}>🚜 Farms</Heading>
-								<Paragraph color="#BDBDBD">Deposit stablecoins, LP tokens or FARM to learn FARM</Paragraph>
-
-								<Paragraph marginY={majorScale(3)} textTransform="uppercase">Your overall farming stats</Paragraph>
-								<Pane paddingLeft={majorScale(2)} marginBottom={majorScale(6)}>
-									<Paragraph>Unstaked Farm</Paragraph>
-									<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>1.5145</Heading>
-
-									<Paragraph>Total Farm staked on Profit sharing</Paragraph>
-									<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>2.5000</Heading>
-
-									<Paragraph>Gain in %</Paragraph>
-									<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>32.52450</Heading>
-
-									<Paragraph>$FARM Earned</Paragraph>
-									<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>2.13145</Heading>
-
-									<Paragraph>Currrent Return in $</Paragraph>
-									<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>111,132,422,123,492.42093</Heading>
-								</Pane>
-
-								<Pane display="flex">
-									<Paragraph marginBottom={majorScale(3)} marginRight={majorScale(1)} textTransform="uppercase">Current farming rate</Paragraph>
-									<Popover
-										position="bottom-right"
-										content={
-											<Menu>
-												<Menu.Group>
-													{pools.map(o => (
-														<Menu.Item key={`pool-${o.value}`} onSelect={() => this.setState({ selectedPool: o })}>
-															{o.text}
-														</Menu.Item>
-													))}
-												</Menu.Group>
-											</Menu>
-										}
-									>
-										<Button appearance="minimal" iconAfter={CaretDownIcon} height={24}>
-											{!selectedPool ? 'All pools' : selectedPool.text}
-										</Button>
-									</Popover>
-								</Pane>
-
-								<Pane display="flex" >
-									<Pane flex={0.6}>
-										<Text>Hourly</Text>
-									</Pane>
-									<Pane flex={0.4}>
-										<Pane display="flex">
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-end">
-													<Text>0.52450</Text>
-												</Pane>
-											</Pane>
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-start">
-													<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
-												</Pane>
-											</Pane>
-										</Pane>
-										<Pane display="flex">
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-end">
-													<Text>0.01145</Text>
-												</Pane>
-											</Pane>
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-start">
-													<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
-												</Pane>
-											</Pane>
-										</Pane>
-										<Pane display="flex">
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-end">
-													<Text>1.93455</Text>
-												</Pane>
-											</Pane>
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-start">
-													<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
-												</Pane>
-											</Pane>
-										</Pane>
-									</Pane>
-								</Pane>
-								<hr color="#F2F2F2" />
-								<Pane display="flex" >
-									<Pane flex={0.6}>
-										<Text>Daily</Text>
-									</Pane>
-									<Pane flex={0.4}>
-										<Pane display="flex">
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-end">
-													<Text>4.52450</Text>
-												</Pane>
-											</Pane>
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-start">
-													<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
-												</Pane>
-											</Pane>
-										</Pane>
-										<Pane display="flex">
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-end">
-													<Text>0.42445</Text>
-												</Pane>
-											</Pane>
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-start">
-													<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
-												</Pane>
-											</Pane>
-										</Pane>
-										<Pane display="flex">
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-end">
-													<Text>46.42851</Text>
-												</Pane>
-											</Pane>
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-start">
-													<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
-												</Pane>
-											</Pane>
-										</Pane>
-									</Pane>
-								</Pane>
-								<hr color="#F2F2F2" />
-								<Pane display="flex" >
-									<Pane flex={0.6}>
-										<Text>Weekly</Text>
-									</Pane>
-									<Pane flex={0.4}>
-										<Pane display="flex">
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-end">
-													<Text>32.52450</Text>
-												</Pane>
-											</Pane>
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-start">
-													<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
-												</Pane>
-											</Pane>
-										</Pane>
-										<Pane display="flex">
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-end">
-													<Text>2.13145</Text>
-												</Pane>
-											</Pane>
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-start">
-													<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
-												</Pane>
-											</Pane>
-										</Pane>
-										<Pane display="flex">
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-end">
-													<Text>325.00145</Text>
-												</Pane>
-											</Pane>
-											<Pane flex={0.5}>
-												<Pane display="flex" justifyContent="flex-start">
-													<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
-												</Pane>
-											</Pane>
-										</Pane>
-									</Pane>
-								</Pane>
-							</Pane>
-
-							{/* Right Content */}
-							<Pane flex={0.7} paddingLeft={minorScale(9)}>
-								{/* Chart */}
-								<Pane marginBottom={majorScale(7)}>
-									<Paragraph textTransform="uppercase">Farm earned overtime</Paragraph>
-									<img src={ImageChart} alt="chart" style={{ width: '100%' }} />
-								</Pane>
-
-								{/* Pools */}
+					<Pane flex={0.6}>
+						<Pane display="flex" justifyContent="flex-end" marginBottom={majorScale(2)}>
+							<Pane
+								background="white"
+								display="flex"
+								alignItems="center"
+								flexDirection="column"
+								paddingX={majorScale(1)}
+								paddingTop={majorScale(3)}
+								paddingBottom={majorScale(1)}
+								marginLeft={majorScale(2)}
+								minWidth={200}
+							>
+								<Heading size={900} marginBottom={majorScale(1)}>{state.totalValue}</Heading>
 								<Pane>
+									<Text size={500}>Total account value</Text>
+									<ShareIcon marginLeft={minorScale(1)} />
+								</Pane>
+							</Pane>
+							<Pane
+								background="white"
+								display="flex"
+								alignItems="center"
+								flexDirection="column"
+								paddingX={majorScale(1)}
+								paddingTop={majorScale(3)}
+								paddingBottom={majorScale(1)}
+								marginLeft={majorScale(2)}
+								minWidth={200}
+							>
+								<Heading size={900} marginBottom={majorScale(1)}>1.000</Heading>
+								<Pane>
+									<Text size={500}>Staked $FARM</Text>
+									<ShareIcon marginLeft={minorScale(1)} />
+								</Pane>
+							</Pane>
+							<Pane
+								background="white"
+								display="flex"
+								alignItems="center"
+								flexDirection="column"
+								paddingX={majorScale(1)}
+								paddingTop={majorScale(3)}
+								paddingBottom={majorScale(1)}
+								marginLeft={majorScale(2)}
+								minWidth={200}
+							>
+								<Heading size={900} marginBottom={majorScale(1)}>1.413</Heading>
+								<Pane>
+									<Text size={500}>Unstaked $FARM</Text>
+									<ShareIcon marginLeft={minorScale(1)} />
+								</Pane>
+							</Pane>
+						</Pane>
+						<Pane display="flex" justifyContent="flex-end">
+							<Button appearance="primary" intent="success">Stake all 🚜 to Profit Share</Button>
+						</Pane>
+					</Pane>
+				</Pane>
+			</Pane>
+
+			{/* Dashboard Content */}
+			<Pane display="flex" justifyContent="center" paddingY={majorScale(2)}>
+				<Pane width={1200}>
+					<Tablist marginBottom={16} flexBasis={240} marginRight={24}>
+						{state.tabs.map((tab, index) => (
+							<Tab
+								key={tab}
+								id={tab}
+								onSelect={() => setState(prevState => ({ ...prevState, selectedTabIndex: index }))}
+								isSelected={index === state.selectedTabIndex}
+								aria-controls={`panel-${tab}`}
+							>
+								{tab}
+							</Tab>
+						))}
+					</Tablist>
+
+					<Pane display="flex" marginTop={majorScale(6)}>
+						{/* Left Content */}
+						<Pane flex={0.3}>
+							<Heading size={700} color="#1D8248" marginBottom={minorScale(3)}>🚜 Farms</Heading>
+							<Paragraph color="#BDBDBD">Deposit stablecoins, LP tokens or FARM to learn FARM</Paragraph>
+
+							<Paragraph marginY={majorScale(3)} textTransform="uppercase">Your overall farming stats</Paragraph>
+							<Pane paddingLeft={majorScale(2)} marginBottom={majorScale(6)}>
+								<Paragraph>Unstaked Farm</Paragraph>
+								<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>1.5145</Heading>
+
+								<Paragraph>Total Farm staked on Profit sharing</Paragraph>
+								<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>2.5000</Heading>
+
+								<Paragraph>Gain in %</Paragraph>
+								<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>32.52450</Heading>
+
+								<Paragraph>$FARM Earned</Paragraph>
+								<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>2.13145</Heading>
+
+								<Paragraph>Currrent Return in $</Paragraph>
+								<Heading size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>111,132,422,123,492.42093</Heading>
+							</Pane>
+
+							<Pane display="flex">
+								<Paragraph marginBottom={majorScale(3)} marginRight={majorScale(1)} textTransform="uppercase">Current farming rate</Paragraph>
+								<Popover
+									position="bottom-right"
+									content={
+										<Menu>
+											<Menu.Group>
+												{state.pools.map(o => (
+													<Menu.Item key={`pool-${o.value}`} onSelect={() => setState(prevState => ({ ...prevState, selectedPool: o }))}>
+														{o.text}
+													</Menu.Item>
+												))}
+											</Menu.Group>
+										</Menu>
+									}
+								>
+									<Button appearance="minimal" iconAfter={CaretDownIcon} height={24}>
+										{!state.selectedPool ? 'All pools' : state.selectedPool.text}
+									</Button>
+								</Popover>
+							</Pane>
+
+							<Pane display="flex" >
+								<Pane flex={0.6}>
+									<Text>Hourly</Text>
+								</Pane>
+								<Pane flex={0.4}>
 									<Pane display="flex">
 										<Pane flex={0.5}>
-											<Paragraph textTransform="uppercase">Pools participated</Paragraph>
-											<Paragraph color="#BDBDBD">These are the list pools that you have staked in.</Paragraph>
+											<Pane display="flex" justifyContent="flex-end">
+												<Text>0.52450</Text>
+											</Pane>
 										</Pane>
 										<Pane flex={0.5}>
-											<Pane display="flex" justifyContent="flex-end">
-												<Button appearance="primary" intent="success" iconAfter={CaretDownIcon}>Claim all rewards</Button>
+											<Pane display="flex" justifyContent="flex-start">
+												<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
 											</Pane>
 										</Pane>
 									</Pane>
+									<Pane display="flex">
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-end">
+												<Text>0.01145</Text>
+											</Pane>
+										</Pane>
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-start">
+												<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
+											</Pane>
+										</Pane>
+									</Pane>
+									<Pane display="flex">
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-end">
+												<Text>1.93455</Text>
+											</Pane>
+										</Pane>
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-start">
+												<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
+											</Pane>
+										</Pane>
+									</Pane>
+								</Pane>
+							</Pane>
+							<hr color="#F2F2F2" />
+							<Pane display="flex" >
+								<Pane flex={0.6}>
+									<Text>Daily</Text>
+								</Pane>
+								<Pane flex={0.4}>
+									<Pane display="flex">
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-end">
+												<Text>4.52450</Text>
+											</Pane>
+										</Pane>
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-start">
+												<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
+											</Pane>
+										</Pane>
+									</Pane>
+									<Pane display="flex">
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-end">
+												<Text>0.42445</Text>
+											</Pane>
+										</Pane>
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-start">
+												<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
+											</Pane>
+										</Pane>
+									</Pane>
+									<Pane display="flex">
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-end">
+												<Text>46.42851</Text>
+											</Pane>
+										</Pane>
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-start">
+												<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
+											</Pane>
+										</Pane>
+									</Pane>
+								</Pane>
+							</Pane>
+							<hr color="#F2F2F2" />
+							<Pane display="flex" >
+								<Pane flex={0.6}>
+									<Text>Weekly</Text>
+								</Pane>
+								<Pane flex={0.4}>
+									<Pane display="flex">
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-end">
+												<Text>32.52450</Text>
+											</Pane>
+										</Pane>
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-start">
+												<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
+											</Pane>
+										</Pane>
+									</Pane>
+									<Pane display="flex">
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-end">
+												<Text>2.13145</Text>
+											</Pane>
+										</Pane>
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-start">
+												<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
+											</Pane>
+										</Pane>
+									</Pane>
+									<Pane display="flex">
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-end">
+												<Text>325.00145</Text>
+											</Pane>
+										</Pane>
+										<Pane flex={0.5}>
+											<Pane display="flex" justifyContent="flex-start">
+												<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
+											</Pane>
+										</Pane>
+									</Pane>
+								</Pane>
+							</Pane>
+						</Pane>
 
-									{/* Pool List */}
-									<Pane display="flex" flexWrap="wrap" marginTop={majorScale(3)}>
-										{dataPools.map(pool => (
-											<Pane key={`pool-${pool.id}`} flex="0 0 calc(33% - 8px)" margin={minorScale(1)}>
+						{/* Right Content */}
+						<Pane flex={0.7} paddingLeft={minorScale(9)}>
+							{/* Chart */}
+							<Pane marginBottom={majorScale(7)}>
+								<Paragraph textTransform="uppercase">Farm earned overtime</Paragraph>
+								{/* <img src={ImageChart} alt="chart" style={{ width: '100%' }} /> */}
+								<Pane style={{ height: 300 }}>
+									<Chart data={chartData} series={series} axes={axes} />
+								</Pane>
+							</Pane>
+
+							{/* Pools */}
+							<Pane>
+								<Pane display="flex">
+									<Pane flex={0.5}>
+										<Paragraph textTransform="uppercase">Pools participated</Paragraph>
+										<Paragraph color="#BDBDBD">These are the list pools that you have staked in.</Paragraph>
+									</Pane>
+									<Pane flex={0.5}>
+										<Pane display="flex" justifyContent="flex-end">
+											<Button appearance="primary" intent="success" iconAfter={CaretDownIcon}>Claim all rewards</Button>
+										</Pane>
+									</Pane>
+								</Pane>
+
+								{/* Pool List */}
+								<Pane display="flex" flexWrap="wrap" marginTop={majorScale(3)}>
+									{dataPools.map(pool => (
+										<Pane key={`pool-${pool.id}`} flex="0 0 calc(33% - 8px)" margin={minorScale(1)}>
+											<Pane
+												elevation={1}
+												width="100%"
+												border="default"
+												paddingX={majorScale(1)}
+												paddingY={majorScale(2)}
+											>
 												<Pane
-													elevation={1}
-													width="100%"
-													border="default"
-													paddingX={majorScale(1)}
-													paddingY={majorScale(2)}
+													display="flex"
+													height={70}
+													justifyContent="center"
+													alignItems="center"
+													flexDirection="column"
+													marginBottom={minorScale(5)}
 												>
-													<Pane
-														display="flex"
-														height={70}
-														justifyContent="center"
-														alignItems="center"
-														flexDirection="column"
-														marginBottom={minorScale(5)}
-													>
-														{pool.closed && <Badge color="neutral" isSolid textTransform="uppercase">Closed</Badge>}
-														<Heading size={700} color="#1D8248">{pool.name}</Heading>
-														<Text color="#BDBDBD">Deposit {pool.deposit}</Text>
-														{pool.boost && <Pill color="green" isSolid textTransform="uppercase">{pool.boost_multiplier}x boost</Pill>}
-													</Pane>
-
-													<Pane display="flex" marginBottom={minorScale(3)}>
-														<Pane flex={0.5}>
-															<Pane display="flex">
-																<Text color="#425A70">Your stake</Text>
-															</Pane>
-														</Pane>
-														<Pane flex={0.5}>
-															<Pane display="flex" justifyContent="flex-end">
-																<Text>${pool.stake.toFixed(2)}</Text>
-															</Pane>
-														</Pane>
-													</Pane>
-													<Pane display="flex" marginBottom={minorScale(3)}>
-														<Pane flex={0.5}>
-															<Pane display="flex">
-																<Text color="#425A70">Size in the farm</Text>
-															</Pane>
-														</Pane>
-														<Pane flex={0.5}>
-															<Pane display="flex" justifyContent="flex-end">
-																<Text>{pool.size_in_farm.toFixed(3)}%</Text>
-															</Pane>
-														</Pane>
-													</Pane>
-													<Pane display="flex" marginBottom={minorScale(3)}>
-														<Pane flex={0.5}>
-															<Pane display="flex">
-																<Text color="#425A70">Profitability</Text>
-															</Pane>
-														</Pane>
-														<Pane flex={0.5}>
-															<Pane display="flex" justifyContent="flex-end">
-																<Text color="#219653">{pool.profitability}% APY</Text>
-															</Pane>
-														</Pane>
-													</Pane>
-													<Pane display="flex" marginBottom={minorScale(3)}>
-														<Pane flex={0.5}>
-															<Pane display="flex">
-																<Text color="#425A70">Earnings</Text>
-															</Pane>
-														</Pane>
-														<Pane flex={0.5}>
-															<Pane display="flex" justifyContent="flex-end">
-																<Text color="#219653">{`${pool.earnings_num ? `${pool.earnings_num} = ` : ''}$${pool.earnings_amount}`}</Text>
-															</Pane>
-														</Pane>
-													</Pane>
+													{pool.closed && <Badge color="neutral" isSolid textTransform="uppercase">Closed</Badge>}
+													<Heading size={700} color="#1D8248">{pool.name}</Heading>
+													<Text color="#BDBDBD">Deposit {pool.deposit}</Text>
+													{pool.boost && <Pill color="green" isSolid textTransform="uppercase">{pool.boost_multiplier}x boost</Pill>}
 												</Pane>
 
-												<Pane display="flex" paddingX={majorScale(2)} paddingY={majorScale(1)}>
-													<Pane flex={0.4}>
-														<Text color="#BDBDBD">Hourly</Text>
+												<Pane display="flex" marginBottom={minorScale(3)}>
+													<Pane flex={0.5}>
+														<Pane display="flex">
+															<Text color="#425A70">Your stake</Text>
+														</Pane>
 													</Pane>
-													<Pane flex={0.6}>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.hourly.percentage}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.hourly.farm}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.hourly.usd}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
-																</Pane>
-															</Pane>
+													<Pane flex={0.5}>
+														<Pane display="flex" justifyContent="flex-end">
+															<Text>${pool.stake.toFixed(2)}</Text>
 														</Pane>
 													</Pane>
 												</Pane>
-												<Pane display="flex" paddingX={majorScale(2)} paddingY={majorScale(1)}>
-													<Pane flex={0.4}>
-														<Text color="#BDBDBD">Daily</Text>
+												<Pane display="flex" marginBottom={minorScale(3)}>
+													<Pane flex={0.5}>
+														<Pane display="flex">
+															<Text color="#425A70">Size in the farm</Text>
+														</Pane>
 													</Pane>
-													<Pane flex={0.6}>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.daily.percentage}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.daily.farm}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
-																</Pane>
-															</Pane>
-														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.daily.usd}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
-																</Pane>
-															</Pane>
+													<Pane flex={0.5}>
+														<Pane display="flex" justifyContent="flex-end">
+															<Text>{pool.size_in_farm.toFixed(3)}%</Text>
 														</Pane>
 													</Pane>
 												</Pane>
-												<Pane display="flex" paddingX={majorScale(2)} paddingY={majorScale(1)}>
-													<Pane flex={0.4}>
-														<Text color="#BDBDBD">Weekly</Text>
+												<Pane display="flex" marginBottom={minorScale(3)}>
+													<Pane flex={0.5}>
+														<Pane display="flex">
+															<Text color="#425A70">Profitability</Text>
+														</Pane>
 													</Pane>
-													<Pane flex={0.6}>
+													<Pane flex={0.5}>
+														<Pane display="flex" justifyContent="flex-end">
+															<Text color="#219653">{pool.profitability}% APY</Text>
+														</Pane>
+													</Pane>
+												</Pane>
+												<Pane display="flex" marginBottom={minorScale(3)}>
+													<Pane flex={0.5}>
 														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.weekly.percentage}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
-																</Pane>
+															<Text color="#425A70">Earnings</Text>
+														</Pane>
+													</Pane>
+													<Pane flex={0.5}>
+														<Pane display="flex" justifyContent="flex-end">
+															<Text color="#219653">{`${pool.earnings_num ? `${pool.earnings_num} = ` : ''}$${pool.earnings_amount}`}</Text>
+														</Pane>
+													</Pane>
+												</Pane>
+											</Pane>
+
+											<Pane display="flex" paddingX={majorScale(2)} paddingY={majorScale(1)}>
+												<Pane flex={0.4}>
+													<Text color="#BDBDBD">Hourly</Text>
+												</Pane>
+												<Pane flex={0.6}>
+													<Pane display="flex">
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-end">
+																<Text>{pool.hourly.percentage}</Text>
 															</Pane>
 														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.weekly.farm}</Text>
-																</Pane>
-															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
-																</Pane>
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-start">
+																<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
 															</Pane>
 														</Pane>
-														<Pane display="flex">
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-end">
-																	<Text>{pool.weekly.usd}</Text>
-																</Pane>
+													</Pane>
+													<Pane display="flex">
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-end">
+																<Text>{pool.hourly.farm}</Text>
 															</Pane>
-															<Pane flex={0.5}>
-																<Pane display="flex" justifyContent="flex-start">
-																	<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
-																</Pane>
+														</Pane>
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-start">
+																<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
+															</Pane>
+														</Pane>
+													</Pane>
+													<Pane display="flex">
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-end">
+																<Text>{pool.hourly.usd}</Text>
+															</Pane>
+														</Pane>
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-start">
+																<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
 															</Pane>
 														</Pane>
 													</Pane>
 												</Pane>
 											</Pane>
-										))}
-									</Pane>
+											<Pane display="flex" paddingX={majorScale(2)} paddingY={majorScale(1)}>
+												<Pane flex={0.4}>
+													<Text color="#BDBDBD">Daily</Text>
+												</Pane>
+												<Pane flex={0.6}>
+													<Pane display="flex">
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-end">
+																<Text>{pool.daily.percentage}</Text>
+															</Pane>
+														</Pane>
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-start">
+																<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
+															</Pane>
+														</Pane>
+													</Pane>
+													<Pane display="flex">
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-end">
+																<Text>{pool.daily.farm}</Text>
+															</Pane>
+														</Pane>
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-start">
+																<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
+															</Pane>
+														</Pane>
+													</Pane>
+													<Pane display="flex">
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-end">
+																<Text>{pool.daily.usd}</Text>
+															</Pane>
+														</Pane>
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-start">
+																<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
+															</Pane>
+														</Pane>
+													</Pane>
+												</Pane>
+											</Pane>
+											<Pane display="flex" paddingX={majorScale(2)} paddingY={majorScale(1)}>
+												<Pane flex={0.4}>
+													<Text color="#BDBDBD">Weekly</Text>
+												</Pane>
+												<Pane flex={0.6}>
+													<Pane display="flex">
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-end">
+																<Text>{pool.weekly.percentage}</Text>
+															</Pane>
+														</Pane>
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-start">
+																<Text marginLeft={minorScale(1)} opacity={0.55}>%</Text>
+															</Pane>
+														</Pane>
+													</Pane>
+													<Pane display="flex">
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-end">
+																<Text>{pool.weekly.farm}</Text>
+															</Pane>
+														</Pane>
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-start">
+																<Text marginLeft={minorScale(1)} opacity={0.55}>in $FARM</Text>
+															</Pane>
+														</Pane>
+													</Pane>
+													<Pane display="flex">
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-end">
+																<Text>{pool.weekly.usd}</Text>
+															</Pane>
+														</Pane>
+														<Pane flex={0.5}>
+															<Pane display="flex" justifyContent="flex-start">
+																<Text marginLeft={minorScale(1)} opacity={0.55}>in $USD</Text>
+															</Pane>
+														</Pane>
+													</Pane>
+												</Pane>
+											</Pane>
+										</Pane>
+									))}
 								</Pane>
 							</Pane>
 						</Pane>
 					</Pane>
 				</Pane>
-			</React.Fragment>
-		);
-	}
-}
+			</Pane>
+		</React.Fragment>
+	);
+};
+
+DashboardPage.propTypes = {
+	reset: PropTypes.func.isRequired
+};
 
 export default DashboardPage;
+
