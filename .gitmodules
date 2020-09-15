@@ -1,0 +1,3 @@
+[submodule "submodules/dashboard"]
+	path = submodules/dashboard
+	url = https://github.com/harvestfi/dashboard.git
