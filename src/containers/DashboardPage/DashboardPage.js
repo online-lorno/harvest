@@ -29,13 +29,25 @@ import data from './../../data.json';
 import ImageChart from './../../images/chart.png';
 import GeneralHelper from './../../helpers/general';
 
+// Added Harvest submodules
+import detectEthereumProvider from '@metamask/detect-provider';
+import harvest from '../../submodules/dashboard/src/lib/index';
+import {PoolManager} from '../../submodules/dashboard/src/lib/manager';
+import {UnderlyingBalances} from '../../submodules/dashboard/src/lib/tokens';
+
+
+const {ethers, utils} = harvest;
+const etherUtils = ethers.utils;
+
 export class DashboardPage extends Component {
+	
 	static propTypes = {
 		reset: PropTypes.func.isRequired
 	}
 
 	state = {
-		id: '0x4c8c2B98b7a7dA2EeAE60706E2646F8b10FA48af',
+		infuraId: '3bda563b54a44db595996726fab75a04',
+		id: '',
 		// tabs
 		selectedTabIndex: 1,
 		tabs: ['Pool Performance', 'My Farms'],
@@ -44,7 +56,96 @@ export class DashboardPage extends Component {
 		pools: [{ text: 'All pools', value: '-' }].concat(data.pools.map(o => ({
 			value: o.id,
 			text: o.name
-		})))
+		}))),
+		provider: undefined,
+		signer: undefined,
+		address: '',
+		manager: undefined,
+		summaries: [],
+		underlyings: [],
+		totalValue: 0,
+		totalRewards: 0,
+		usdValue: 0
+	}
+
+	setProvider(provider) {
+		provider = new ethers.providers.Web3Provider(provider);
+		
+		let signer;
+		try {
+		  signer = provider.getSigner();
+		} catch (e) {console.log(e);};
+		const manager = harvest.manager.PoolManager.allPastPools(signer ? signer : provider);
+	
+		this.setState({provider, signer, manager});
+		
+		console.log({provider, signer, manager});
+		
+		// get the user address
+		signer.getAddress().then((address) => this.setState({address}));
+
+		console.log(signer.getBalance());
+		
+	}
+	
+	connectMetamask() {	
+		detectEthereumProvider().then((provider) => { window.ethereum.enable().then(() => this.setProvider(provider));
+		});
+	}
+	
+
+	async getBalances() {
+
+		const man = PoolManager.allPastPools(this.state.provider);
+		const summaries = await man.summary(this.state.address);
+		const underlyings = await man.underlying(this.state.address, true);
+		
+		console.log(this.state.address);
+		console.log(this.state.provider);
+		console.log(this.state.summaries);
+
+		let totalRewards = ethers.BigNumber.from(0);
+		let totalValue = ethers.BigNumber.from(0);
+		const positions = summaries
+			.map(utils.prettyPosition)
+			.filter((p) => p.earnedRewards !== '0.0' || p.stakedBalance !== '0.0');
+	  
+		summaries.forEach((pos) => {
+		  totalRewards = totalRewards.add(pos.summary.earnedRewards);
+		  totalValue = totalValue.add(pos.summary.usdValueOf);
+		});
+	  
+		// combine all underlying positions
+		let aggregateUnderlyings = new UnderlyingBalances();
+	  
+		underlyings.reduce((acc, next) => {
+		  return acc.combine(next.underlyingBalances);
+		}, aggregateUnderlyings);
+	  
+		aggregateUnderlyings = aggregateUnderlyings
+		  .toList()
+		  .filter((underlying) => !underlying.balance.isZero())
+		  .map((u) => {
+			  return {
+			  name: u.asset.name,
+			  balance: ethers.utils.formatUnits(u.balance, u.asset.decimals)};
+		  });
+	  
+		const output = {
+		  positions,
+		  totalRewards: totalRewards.toString(),
+		  totalValue: totalValue.toString(),
+		  underlyings: aggregateUnderlyings
+		};
+
+		console.log(output);
+
+		this.setState({ 
+			underlyings: aggregateUnderlyings,
+			totalValue: utils.prettyMoney(totalValue),
+			totalRewards: utils.prettyMoney(totalRewards)
+		});
+
 	}
 
 	render() {
@@ -61,6 +162,9 @@ export class DashboardPage extends Component {
 		} else {
 			dataPools = [data.pools.find(o => o.id === selectedPool.value)];
 		}
+
+		// Log the table
+		
 
 		return (
 			<React.Fragment>
@@ -97,7 +201,8 @@ export class DashboardPage extends Component {
 									<Text color="#E0E0E0">You’re earning $1.93455 hourly thats $46.42851 daily and $325.00145 weekly</Text>
 								</Pane>
 							</Pane>
-							<Button iconBefore={DollarIcon}>Withdraw All</Button>
+							<Button appearance="primary" intent="success" iconBefore={DollarIcon} onClick={this.connectMetamask.bind(this)}>Connect Wallet</Button>
+							<Button iconBefore={DollarIcon} onClick={this.getBalances.bind(this)}>Load Balances</Button>
 						</Pane>
 						<Pane flex={0.6}>
 							<Pane display="flex" justifyContent="flex-end" marginBottom={majorScale(2)}>
@@ -112,9 +217,9 @@ export class DashboardPage extends Component {
 									marginLeft={majorScale(2)}
 									minWidth={200}
 								>
-									<Heading size={900} marginBottom={majorScale(1)}>$1.514k</Heading>
+									<Heading size={900} marginBottom={majorScale(1)}>{this.state.totalValue}</Heading>
 									<Pane>
-										<Text size={500}>Your total staked in USD</Text>
+										<Text size={500}>Total account value</Text>
 										<ShareIcon marginLeft={minorScale(1)} />
 									</Pane>
 								</Pane>
