@@ -49,7 +49,7 @@ const {ethers, utils} = harvest;
 const ETH_DECIMAL = 18;
 const NUM_DECIMAL = 5;
 
-const CURRENT_SCREENSIZE = 1200;
+const CURRENT_SCREENSIZE = 800;
 
 export class DashboardPage extends Component {
 	
@@ -209,7 +209,7 @@ export class DashboardPage extends Component {
 					<Pane width={CURRENT_SCREENSIZE}>
 						<Pane justifyContent="center" >
 							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center"  marginBottom={majorScale(3)}>								
-								<Heading size={800} color="#F2C94C" marginBottom={majorScale(2)}>
+								<Heading size={500} color="#F2C94C" marginBottom={majorScale(2)}>
 									{this.state.address}
 								</Heading>
 							</Pane>
@@ -221,7 +221,6 @@ export class DashboardPage extends Component {
 						<Pane elevation={1} background="white" justifyContent="flex" >
 							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center" marginBottom={majorScale(2)}>	
 								<Pane
-									background="white"
 									display="flex"
 									alignItems="center"
 									flexDirection="column"
@@ -232,16 +231,15 @@ export class DashboardPage extends Component {
 									minWidth={200}
 								>
 									<Pane marginBottom={majorScale(1)}>
-										<Text size={500}>Total Position Value</Text>
+										<Heading size={100}>Total Position Value</Heading>
 										
 									</Pane>
-									<Heading className="hf-number" size={900} width={"auto"}> {this.state.totalValue} </Heading>
+									<Heading className="hf-number" size={800} width={"auto"}> {this.state.totalValue} </Heading>
 
 								</Pane>	
 							</Pane>		
 							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center" marginBottom={majorScale(2)}>	
 								<Pane
-									background="white"
 									display="flex"
 									alignItems="center"
 									flexDirection="column"
@@ -252,16 +250,15 @@ export class DashboardPage extends Component {
 									minWidth={200}
 								>
 									<Pane marginBottom={majorScale(1)}>
-										<Text size={500}>$FARM Price</Text>
+										<Heading size={100}>$FARM Price</Heading>
 										
 									</Pane>
-									<Heading className="hf-number" size={900} width={"auto"}> 
+									<Heading className="hf-number" size={600} width={"auto"}> 
 										0 {/*{this.state.tokenPrice['FARM']}  */}
 									</Heading>
 
 								</Pane>														
 								<Pane
-									background="white"
 									display="flex"
 									alignItems="center"
 									flexDirection="column"
@@ -272,14 +269,13 @@ export class DashboardPage extends Component {
 									minWidth={200}
 								>
 									<Pane marginBottom={majorScale(1)}>
-										<Text size={500}>Current $FARM Earnings</Text>
+										<Heading size={100}>Current $FARM Earnings</Heading>
 										
 									</Pane>
-									<Heading className="hf-number" size={900} width={"auto"}> {this.state.totalEarnedRewards} </Heading>
+									<Heading className="hf-number" size={600} width={"auto"}> {this.state.totalRewards.toFixed(NUM_DECIMAL)} </Heading>
 
 								</Pane>
 								<Pane
-									background="white"
 									display="flex"
 									alignItems="center"
 									flexDirection="column"
@@ -290,13 +286,12 @@ export class DashboardPage extends Component {
 									minWidth={200}
 								>
 									<Pane marginBottom={majorScale(1)}>
-										<Text size={500}>Staked $FARM</Text>
+										<Heading size={100}>Staked $FARM</Heading>
 										
 									</Pane>
-									<Heading className="hf-number" size={900} marginBottom={majorScale(1)}>{this.state.totalStakedReward}</Heading>
+									<Heading className="hf-number" size={600} marginBottom={majorScale(1)}>{this.state.totalStakedReward.toFixed(NUM_DECIMAL)}</Heading>
 								</Pane>
 								<Pane	
-									background="white"
 									display="flex"
 									alignItems="center"
 									flexDirection="column"
@@ -307,10 +302,10 @@ export class DashboardPage extends Component {
 									minWidth={200}
 								>
 									<Pane marginBottom={majorScale(1)}>
-										<Text size={500}>Idle $FARM</Text>
+										<Heading size={100}>Idle $FARM</Heading>
 										
 									</Pane>
-									<Heading className="hf-number" size={900} marginBottom={majorScale(1)}>{this.state.totalUnstakedReward.toFixed(NUM_DECIMAL)}</Heading>
+									<Heading className="hf-number" size={600} marginBottom={majorScale(1)}>{this.state.totalUnstakedReward.toFixed(NUM_DECIMAL)}</Heading>
 
 								</Pane>
 							</Pane>
@@ -325,7 +320,7 @@ export class DashboardPage extends Component {
 									<Pane display="flex" flexDirection="row" >
 										<Pane flex={0.5} justifyItem="center">
 											<Heading size={400} marginTop={0} textTransform="uppercase">Pools participated</Heading>
-											<Paragraph size={300} color="muted">These are the list pools that you have staked in.</Paragraph>
+											<Text size={300} color="#BDBDBD">These are the pools that you have staked in.</Text>
 										</Pane>
 										<Pane flex={0.5} justifyItem="center">
 											<Pane display="flex" justifyContent="flex-end">
@@ -360,11 +355,11 @@ export class DashboardPage extends Component {
 													<Table.Row>
 														<Table.TextCell>
 															<Paragraph size={300}>{pos.name}</Paragraph>
-															<Paragraph size={100} className={"muted"}>Deposit {pos.name}</Paragraph>
+															<Paragraph size={100} color="#BDBDBD">Deposit {pos.name}</Paragraph>
 														</Table.TextCell>
 														<Table.TextCell isNumber>
-															<Paragraph size={300}>{pos.earnedRewards}</Paragraph>
-															<Paragraph size={100} className={"muted"}>≈ 0</Paragraph>
+															<Paragraph size={300}>{parseFloat(pos.earnedRewards).toFixed(8)}</Paragraph>
+															<Paragraph size={100} color="#BDBDBD">≈ {parseFloat(0).toFixed(NUM_DECIMAL)}</Paragraph>
 														</Table.TextCell>
 														<Table.TextCell isNumber>
 															<Paragraph size={300}>{pos.unstakedBalance}</Paragraph>
