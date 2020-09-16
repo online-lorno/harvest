@@ -23,7 +23,8 @@ import {
 	//utils
 	majorScale,
 	minorScale,
-	Label
+	Label,
+	Table
 } from 'evergreen-ui';
 
 import data from './../../data.json';
@@ -40,9 +41,13 @@ import detectEthereumProvider from '@metamask/detect-provider';
 import harvest from '../../submodules/dashboard/src/lib/index';
 import {PoolManager} from '../../submodules/dashboard/src/lib/manager';
 import {UnderlyingBalances} from '../../submodules/dashboard/src/lib/tokens';
+import Provider from 'react-redux/lib/components/Provider';
 
 
 const {ethers, utils} = harvest;
+
+const ETH_DECIMAL = 18;
+const NUM_DECIMAL = 5;
 
 export class DashboardPage extends Component {
 	
@@ -65,50 +70,69 @@ export class DashboardPage extends Component {
 		provider: undefined,
 		signer: undefined,
 		address: '',
-		manager: undefined,
+		manager: undefined,	
 		summaries: [],
 		underlyings: [],
+		positions: [],
+		totalEarnedRewards: 0,
+		totalUnstakedReward: 0,
+		totalStakedReward: 0,
 		totalValue: 0,
 		totalRewards: 0,
 		usdValue: 0
 	}
 
+	componentDidMount(){
+		
+		// Try to connect and get balance
+		try {
+			this.connectMetamask();
+			console.log(this.state.provider);
+		} catch (e){console.log(e);}
+
+	}
+
 	setProvider(provider) {
 		provider = new ethers.providers.Web3Provider(provider);
-		
+	
 		let signer;
 		try {
 		  signer = provider.getSigner();
-		} catch (e) {console.log(e);};
+		} catch (e) {console.log(e);}
 		const manager = harvest.manager.PoolManager.allPastPools(signer ? signer : provider);
 	
 		this.setState({provider, signer, manager});
 		
-		console.log({provider, signer, manager});
-		
 		// get the user address
-		signer.getAddress().then((address) => this.setState({address}));
+		const address = signer.getAddress()
+		  .then((address) => this.setState({address}));
 
-		console.log(signer.getBalance());
-		
+		console.log({provider, signer, manager, address});	
+
+	  }
+	
+	async connectMetamask() {
+		const provider =  detectEthereumProvider()
+			.then((provider) => {
+				window.ethereum.enable()
+					.then(() => this.setProvider(provider));
+			});
+
+		console.log(provider);
+		return provider;
 	}
 	
-	connectMetamask() {	
-		detectEthereumProvider().then((provider) => { window.ethereum.enable().then(() => this.setProvider(provider));
-		});
-	}
 	
 
 	async getBalances() {
-
-		const man = PoolManager.allPastPools(this.state.provider);
+		const man = await PoolManager.allPastPools(this.state.provider);
 		const summaries = await man.summary(this.state.address);
 		const underlyings = await man.underlying(this.state.address, true);
 		
 		console.log(this.state.address);
 		console.log(this.state.provider);
-		console.log(this.state.summaries);
-
+		console.log(summaries);
+		
 		let totalRewards = ethers.BigNumber.from(0);
 		let totalValue = ethers.BigNumber.from(0);
 		const positions = summaries
@@ -138,7 +162,7 @@ export class DashboardPage extends Component {
 	  
 		const output = {
 		  positions,
-		  totalRewards: totalRewards.toString(),
+		  totalRewards: ethers.utils.formatUnits(totalRewards, ETH_DECIMAL).toString(),
 		  totalValue: totalValue.toString(),
 		  underlyings: aggregateUnderlyings
 		};
@@ -146,11 +170,16 @@ export class DashboardPage extends Component {
 		console.log(output);
 
 		this.setState({ 
+			positions: positions,
 			underlyings: aggregateUnderlyings,
 			totalValue: utils.prettyMoney(totalValue),
-			totalRewards: utils.prettyMoney(totalRewards)
+			totalRewards: parseFloat(ethers.utils.formatUnits(totalRewards, ETH_DECIMAL))
 		});
 
+	}
+
+	actionLinkOpenHarvestFi() {
+		window.open("https://harvest.finance","_blank");
 	}
 
 	render() {
@@ -168,8 +197,8 @@ export class DashboardPage extends Component {
 			dataPools = [data.pools.find(o => o.id === selectedPool.value)];
 		}
 
+		this.getBalances();
 		// Log the table
-		
 
 		return (
 			<React.Fragment>
@@ -203,11 +232,11 @@ export class DashboardPage extends Component {
 							<Heading size={800} color="#F2C94C" marginBottom={majorScale(2)}>YieldFarm.io</Heading>
 							<Pane display="flex" marginBottom={majorScale(3)}>
 								<Pane flex={0.6}>
-									<Text color="#E0E0E0">...</Text>
-									<Button appearance="primary" intent="success" iconBefore={DollarIcon} onClick={this.connectMetamask.bind(this)}>Connect Wallet</Button>
+									<Text color="#E0E0E0">{this.state.address}</Text>
+									{/* <Button appearance="primary" intent="success" iconBefore={DollarIcon} onClick={this.connectMetamask.bind(this)}>Connect Wallet</Button> */}
 								</Pane>
 							</Pane>
-							<Button appearance="primary" intent="success" iconBefore={DollarIcon} onClick={this.connectMetamask.bind(this)}>Go to Harvest.finance</Button>
+							<Button appearance="primary" intent="success" iconBefore={DollarIcon} onClick={this.actionLinkOpenHarvestFi.bind(this)}>Go to Harvest.finance</Button>
 						</Pane>
 						<Pane flex={0.6}>
 							<Pane display="flex" justifyContent="flex-end" marginBottom={majorScale(2)}>
@@ -223,11 +252,50 @@ export class DashboardPage extends Component {
 									marginLeft={majorScale(2)}
 									minWidth={200}
 								>
-									<Heading size={900} marginBottom={majorScale(1)}>{this.state.totalValue}</Heading>
-									<Pane>
-										<Text size={500}>Total account value</Text>
+									<Pane marginBottom={majorScale(1)}>
+										<Text size={500}>Total Position</Text>
 										<ShareIcon marginLeft={minorScale(1)} />
 									</Pane>
+									<Heading className="hf-number" size={900} width={"auto"}> {this.state.totalValue} </Heading>
+
+								</Pane>		
+								<Pane
+									elevation={1}
+									background="white"
+									display="flex"
+									alignItems="center"
+									flexDirection="column"
+									paddingX={majorScale(1)}
+									paddingTop={majorScale(3)}
+									paddingBottom={majorScale(1)}
+									marginLeft={majorScale(2)}
+									minWidth={200}
+								>
+									<Pane marginBottom={majorScale(1)}>
+										<Text size={500}>$FARM Price</Text>
+										<ShareIcon marginLeft={minorScale(1)} />
+									</Pane>
+									<Heading className="hf-number" size={900} width={"auto"}> {this.state.totalValue} </Heading>
+
+								</Pane>														
+								<Pane
+									elevation={1}
+									background="white"
+									display="flex"
+									alignItems="center"
+									flexDirection="column"
+									paddingX={majorScale(1)}
+									paddingTop={majorScale(3)}
+									paddingBottom={majorScale(1)}
+									marginLeft={majorScale(2)}
+									minWidth={200}
+								>
+									<Pane marginBottom={majorScale(1)}>
+										<Text size={500}>Total Earned $FARM</Text>
+										<ShareIcon marginLeft={minorScale(1)} />
+									</Pane>
+									<Heading className="hf-number" size={900} width={"auto"}> {this.state.totalEarnedRewards} </Heading>
+
 								</Pane>
 								<Pane
 									elevation={1}
@@ -241,11 +309,11 @@ export class DashboardPage extends Component {
 									marginLeft={majorScale(2)}
 									minWidth={200}
 								>
-									<Heading size={900} marginBottom={majorScale(1)}>1.000</Heading>
-									<Pane>
+									<Pane marginBottom={majorScale(1)}>
 										<Text size={500}>Staked $FARM</Text>
 										<ShareIcon marginLeft={minorScale(1)} />
 									</Pane>
+									<Heading className="hf-number" size={900} marginBottom={majorScale(1)}>{this.state.totalStakedReward}</Heading>
 								</Pane>
 								<Pane
 									elevation={1}
@@ -259,11 +327,12 @@ export class DashboardPage extends Component {
 									marginLeft={majorScale(2)}
 									minWidth={200}
 								>
-									<Heading size={900} marginBottom={majorScale(1)}>1.413</Heading>
-									<Pane>
-										<Text size={500}>Unstaked $FARM</Text>
+									<Pane marginBottom={majorScale(1)}>
+										<Text size={500}>Idle $FARM</Text>
 										<ShareIcon marginLeft={minorScale(1)} />
 									</Pane>
+									<Heading className="hf-number" size={900} marginBottom={majorScale(1)}>{this.state.totalUnstakedReward.toFixed(NUM_DECIMAL)}</Heading>
+
 								</Pane>
 							</Pane>
 							<Pane display="flex" justifyContent="flex-end">
@@ -278,32 +347,29 @@ export class DashboardPage extends Component {
 					<Pane width={1200}>
 						<Pane display="flex" marginTop={majorScale(6)}>
 							{/* Left Content */}
-							<Pane flex={0.3}>
-								<Heading size={700} color="#1D8248" marginBottom={minorScale(3)}>🚜 Farms</Heading>
-								<Paragraph color="#BDBDBD">Deposit stablecoins, LP tokens or FARM to learn FARM</Paragraph>
+							{/* <Pane flex={0.3}>
+								<Heading size={600} color="#1D8248" marginBottom={minorScale(3)}>🚜 Farms</Heading>
+								<Paragraph size={300} color="muted">Deposit stablecoins, LP tokens or FARM to learn FARM</Paragraph>
 
 								<Paragraph marginY={majorScale(3)} textTransform="uppercase">Your overall farming stats</Paragraph>
 								<Pane marginBottom={majorScale(6)}>
 									
 									<Pane marginBottom={majorScale(2)}>									
 										<Paragraph>Unstaked Farm</Paragraph>
-										<Label class="hf-number xl" size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>1.5145</Label>
-									</Pane>
-
-									<Pane marginBottom={majorScale(2)}>		
-										<Paragraph>Total Farm staked on Profit Sharing</Paragraph>
-										<Label class="hf-number xl" size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>2.5000</Label>
+										<Label className="hf-number xl" size={600} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>1.5145</Label>
 									</Pane>
 									
 									<Pane marginBottom={majorScale(2)}>	
 										<Paragraph>$FARM earned</Paragraph>
-										<Label class="hf-number xl" size={700} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>2.13145</Label>
+										<Label className="hf-number xl" size={600} color="#219653" marginTop={majorScale(1)} marginBottom={majorScale(3)}>
+											{this.state.totalRewards.toFixed(NUM_DECIMAL)}
+										</Label>
 									</Pane>
 									
 								</Pane>
-
+								{/* 
 								<Pane display="flex">
-									<Paragraph marginBottom={majorScale(3)} marginRight={majorScale(1)} textTransform="uppercase">Current farming rate</Paragraph>
+									<Paragraph marginBottom={majorScale(3)} marginRight={majorScale(1)} textTransform="uppercase"	>Current farming rate</Paragraph>
 									<Popover
 										position="bottom-right"
 										content={
@@ -453,11 +519,11 @@ export class DashboardPage extends Component {
 											</Pane>
 										</Pane>
 									</Pane>
-								</Pane>
-							</Pane>
+								</Pane>							 
+							</Pane> */}
 
-							{/* Right Content */}
-							<Pane flex={0.7} paddingLeft={minorScale(9)}>
+							{/* Right/Center Content */}
+							<Pane paddingLeft={minorScale(9)}>
 
 								{/* Pools */}
 								<Pane>
@@ -474,82 +540,57 @@ export class DashboardPage extends Component {
 									</Pane>
 
 									{/* Pool List */}
-									<Pane display="flex" flexWrap="wrap" marginTop={majorScale(3)}>
-										{dataPools.map(pool => (
-											<Pane key={`pool-${pool.id}`} flex="0 0 calc(33% - 8px)" margin={minorScale(1)}>
-												<Pane
-													elevation={1}
-													width="100%"
-													border="default"
-													paddingX={majorScale(1)}
-													paddingY={majorScale(2)}
-												>
-													<Pane
-														display="flex"
-														height={70}
-														justifyContent="center"
-														alignItems="center"
-														flexDirection="column"
-														marginBottom={minorScale(5)}
-													>
-														{pool.closed && <Badge color="neutral" isSolid textTransform="uppercase">Closed</Badge>}
-														<Heading size={700} color="#1D8248">{pool.name}</Heading>
-														<Text color="#BDBDBD">Deposit {pool.deposit}</Text>
-														{pool.boost && <Pill color="green" isSolid textTransform="uppercase">{pool.boost_multiplier}x boost</Pill>}
-													</Pane>
+									<Table marginTop={majorScale(3)}>
+										<Table.Head>
+											<Table.TextHeaderCell>
+												Pool
+											</Table.TextHeaderCell>
+											<Table.TextHeaderCell>
+												Earned
+											</Table.TextHeaderCell>
+											<Table.TextHeaderCell>
+												Unstaked
+											</Table.TextHeaderCell>
+											<Table.TextHeaderCell>
+												Your Share
+											</Table.TextHeaderCell>
+											<Table.TextHeaderCell>
+												Pool % Share
+											</Table.TextHeaderCell>											
+											<Table.TextHeaderCell>
+												APY	
+											</Table.TextHeaderCell>												
+										</Table.Head>
+										<Table.Body height={"auto"}>	
 
-													<Pane display="flex" marginBottom={minorScale(3)}>
-														<Pane flex={0.5}>
-															<Pane display="flex">
-																<Text color="#425A70">Your stake</Text>
-															</Pane>
-														</Pane>
-														<Pane flex={0.5}>
-															<Pane display="flex" justifyContent="flex-end">
-																<Text>${pool.stake.toFixed(2)}</Text>
-															</Pane>
-														</Pane>
-													</Pane>
-													<Pane display="flex" marginBottom={minorScale(3)}>
-														<Pane flex={0.5}>
-															<Pane display="flex">
-																<Text color="#425A70">Size in the farm</Text>
-															</Pane>
-														</Pane>
-														<Pane flex={0.5}>
-															<Pane display="flex" justifyContent="flex-end">
-																<Text>{pool.size_in_farm.toFixed(3)}%</Text>
-															</Pane>
-														</Pane>
-													</Pane>
-													<Pane display="flex" marginBottom={minorScale(3)}>
-														<Pane flex={0.5}>
-															<Pane display="flex">
-																<Text color="#425A70">Profitability</Text>
-															</Pane>
-														</Pane>
-														<Pane flex={0.5}>
-															<Pane display="flex" justifyContent="flex-end">
-																<Text color="#219653">{pool.profitability}% APY</Text>
-															</Pane>
-														</Pane>
-													</Pane>
-													<Pane display="flex" marginBottom={minorScale(3)}>
-														<Pane flex={0.5}>
-															<Pane display="flex">
-																<Text color="#425A70">Earnings</Text>
-															</Pane>
-														</Pane>
-														<Pane flex={0.5}>
-															<Pane display="flex" justifyContent="flex-end">
-																<Text color="#219653">{`${pool.earnings_num ? `${pool.earnings_num} = ` : ''}$${pool.earnings_amount}`}</Text>
-															</Pane>
-														</Pane>
-													</Pane>
-												</Pane>
-											</Pane>
-										))}
-									</Pane>
+											{this.state.positions.map( pos =>
+												<Table.Row>
+													<Table.TextCell>
+														<Paragraph size={300}>{pos.name}</Paragraph>
+														<Paragraph size={100} className={"muted"}>Deposit {pos.name}</Paragraph>
+													</Table.TextCell>
+													<Table.TextCell>
+														<Paragraph size={300}>{pos.earnedRewards}</Paragraph>
+														<Paragraph size={100} className={"muted"}>≈ 0</Paragraph>
+													</Table.TextCell>
+													<Table.TextCell>
+														<Paragraph size={300}>{pos.unstakedBalance}</Paragraph>
+													</Table.TextCell>
+													<Table.TextCell>		
+														<Paragraph size={300}>{pos.usdValueOf}</Paragraph>
+													</Table.TextCell>
+													<Table.TextCell isNumber>
+														<Paragraph size={300}>{pos.percentOfPool}</Paragraph>
+													</Table.TextCell>
+													<Table.TextCell isNumber>
+														<Paragraph size={300}>{pos.percentOfPool}</Paragraph>
+													</Table.TextCell>
+												</Table.Row>
+											)}
+
+										</Table.Body>
+									</Table>
+
 								</Pane>
 							</Pane>
 						</Pane>

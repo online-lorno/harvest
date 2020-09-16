@@ -7,9 +7,10 @@
 
 /* Numbers */
 .hf-number {
-    font-family: "SF Mono", monospace;
+    font-family: "SF Mono", monospace;  
     font-weight: 500;
     color: #219653;
+    font-feature-settings: "tnum";
 }
 
 .hf-number.xl {
