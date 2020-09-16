@@ -260,8 +260,7 @@ export class DashboardPage extends Component {
 								</Heading>
 							</Pane>
 							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center" marginBottom={majorScale(2)}>
-								<Button width={200} appearance="primary" justifyContent="center" intent="success" marginRight={majorScale(2)} iconBefore={DollarIcon} onClick={this.actionLinkOpenHarvestFi.bind(this)}>Go to Harvest.finance</Button>
-								<Button width={200} appearance="default" justifyContent="center" intent="none" iconBefore={DollarIcon} onClick={this.actionLinkOpenHarvestFi.bind(this)}>Exit all pools</Button>
+								<Button width={200} appearance="primary" justifyContent="center" intent="success" iconBefore={DollarIcon} onClick={this.actionLinkOpenHarvestFi.bind(this)}>Go to Harvest.finance</Button>
 							</Pane>
 						</Pane>
 						<Pane elevation={1} background="white" justifyContent="flex" >
@@ -301,7 +300,7 @@ export class DashboardPage extends Component {
 										{ (this.state.farmPrice.pretty ? this.state.farmPrice.pretty : 0 ) }
 									</Heading>
 									
-									<Heading className="hf-number" size={100} width={"auto"} color="#BDBDBD">
+									<Heading className="hf-number hf-number-sm" size={100} width={"auto"} color="#BDBDBD">
 										1 ≈ {parseFloat( ( this.state.ethPrice ? (this.state.farmPrice.raw / this.state.ethPrice.raw) : 0)).toFixed(NUM_DECIMAL)}Ξ
 									</Heading>
 									
@@ -381,10 +380,9 @@ export class DashboardPage extends Component {
 											<Heading size={400} marginTop={0} textTransform="uppercase">Pools participated</Heading>
 											<Text size={300} color="#BDBDBD">These are the pools that you have staked in.</Text>
 										</Pane>
-										<Pane flex={0.5} justifyContent="center">
-											<Pane display="flex" justifyContent="flex-end">
-												<Button appearance="primary" intent="success">Claim all rewards</Button>
-											</Pane>
+										<Pane display="flex" flex={0.5} flexDirection="row" justifyContent="flex-end">
+											<Button marginRight={minorScale(1)} appearance="primary" intent="success">Claim all and Reinvest</Button>
+											<Button appearance="primary" intent="success">Claim all rewards</Button>
 										</Pane>
 									</Pane>
 

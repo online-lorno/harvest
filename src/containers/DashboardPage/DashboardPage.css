@@ -11,16 +11,7 @@
     font-feature-settings: "tnum";
 }
 
-.hf-number.xl {
-    font-size: 24px;
-}
-
-.hf-number.md {
-    font-size: 16px;
-}
-
-.hf-number.sm {
-    font-size: 12px;
+.hf-number-sm {
     font-weight: 300;
 }
 
