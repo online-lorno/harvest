@@ -45,6 +45,7 @@ import Gecko from '../../submodules/dashboard/src/lib/gecko';
 import assetData from '../../submodules/dashboard/src/lib/data/deploys';
 
 import {ethers} from 'ethers';
+import connect from 'react-redux/lib/connect/connect';
 
 const {utils} = harvest;
 
@@ -92,9 +93,14 @@ export class DashboardPage extends Component {
 	componentDidMount(){
 		
 		// Try to connect and get balance
-		try {
+		// try {
+		// 	this.connectMetamask();
+		// 	console.log(this.state.provider);
+		// } catch (e){console.log(e);}
+
+		// Try to connect
+		try{
 			this.connectMetamask();
-			console.log(this.state.provider);
 		} catch (e){console.log(e);}
 
 	}
@@ -242,12 +248,11 @@ export class DashboardPage extends Component {
 			dataPools = [data.pools.find(o => o.id === selectedPool.value)];
 		}
 
-		try{
+		if (this.state.provider) {
 			this.getBalances();
-		} catch (e){console.log(e);}
+		}
 
 		// Log the table
-
 		return (
 			<React.Fragment>
 				{/* Dashboard Header */}
