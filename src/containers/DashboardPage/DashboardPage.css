@@ -8,8 +8,6 @@
 /* Numbers */
 .hf-number {
     font-family: "SF Mono", monospace;  
-    font-weight: 500;
-    color: #219653;
     font-feature-settings: "tnum";
 }
 
@@ -24,4 +22,8 @@
 .hf-number.sm {
     font-size: 12px;
     font-weight: 300;
+}
+
+a {
+    text-decoration: none !important;
 }
