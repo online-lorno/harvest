@@ -1,0 +1,20 @@
+
+/* Header */
+.header {
+    background-image: url('../../images/Bg.png');
+    background-repeat: repeat-x;
+}
+
+/* Numbers */
+.hf-number {
+    font-family: "SF Mono", monospace;  
+    font-feature-settings: "tnum";
+}
+
+.hf-number-sm {
+    font-weight: 300;
+}
+
+a {
+    text-decoration: none !important;
+}
