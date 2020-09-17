@@ -1,5 +1,6 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
 import React, { Component } from 'react';
+import _ from 'lodash';
 import PropTypes from 'prop-types';
 import {
 	// components
@@ -16,8 +17,10 @@ import {
 	minorScale,
 	Table
 } from 'evergreen-ui';
+import { ethers } from 'ethers';
 
-import data from './../../data.json';
+// import data from './../../data.json';
+import GeneralHelper from './../../helpers/general';
 
 // Css files
 import '../../styles/fonts/fonts.css';
@@ -27,14 +30,12 @@ import './DashboardPage.css';
 // Added Harvest submodules
 import detectEthereumProvider from '@metamask/detect-provider';
 import harvest from '../../submodules/dashboard/src/lib/index';
-import {PoolManager} from '../../submodules/dashboard/src/lib/manager';
-import {UnderlyingBalances} from '../../submodules/dashboard/src/lib/tokens';
+import { PoolManager } from '../../submodules/dashboard/src/lib/manager';
+import { UnderlyingBalances } from '../../submodules/dashboard/src/lib/tokens';
 import Gecko from '../../submodules/dashboard/src/lib/gecko';
 import assetData from '../../submodules/dashboard/src/lib/data/deploys';
 
-import {ethers} from 'ethers';
-
-const {utils} = harvest;
+const { utils } = harvest;
 
 const ETH_DECIMAL = 18;
 const NUM_DECIMAL = 5;
@@ -42,7 +43,7 @@ const NUM_DECIMAL = 5;
 const CURRENT_SCREENSIZE = 800;
 
 export class DashboardPage extends Component {
-	
+
 	static propTypes = {
 		reset: PropTypes.func.isRequired
 	}
@@ -55,15 +56,15 @@ export class DashboardPage extends Component {
 		tabs: ['Pool Performance', 'My Farms'],
 		// pools
 		selectedPool: null,
-		pools: [{ text: 'All pools', value: '-' }].concat(data.pools.map(o => ({
-			value: o.id,
-			text: o.name
-		}))),
+		// pools: [{ text: 'All pools', value: '-' }].concat(data.pools.map(o => ({
+		// 	value: o.id,
+		// 	text: o.name
+		// }))),
 		provider: undefined,
 		signer: undefined,
 		address: '',
 		addressTruncated: '',
-		manager: undefined,	
+		manager: undefined,
 		summaries: [],
 		underlyings: [],
 		positions: [],
@@ -77,57 +78,64 @@ export class DashboardPage extends Component {
 		usdValue: 0
 	};
 
-	componentDidMount(){
-
+	componentDidMount() {
 		// Try to connect
-		try{
+		try {
 			this.connectMetamask();
-		} catch (e){console.log(e);}
-
+		} catch (e) {
+			console.log(e);
+		}
 	}
 
-	setProvider = provider => {
-		provider = new ethers.providers.Web3Provider(provider);
-	
+	componentDidUpdate(prevProps, prevState) {
+		const { provider: prev_provider } = prevState;
+		const { provider } = this.state;
+
+		// Get balances if provider is set
+		if (provider && provider !== prev_provider) {
+			this.getBalances();
+		}
+	}
+
+	async connectMetamask() {
+		const provider = await detectEthereumProvider();
+
+		if (provider) {
+			window.ethereum.enable();
+			this.setProvider();
+		}
+	}
+
+	async setProvider() {
+		const provider = new ethers.providers.Web3Provider(window.ethereum);
+
 		let signer;
 		try {
-		  signer = provider.getSigner();
-		} catch (e) {console.log(e);}
+			signer = provider.getSigner();
+		} catch (e) {
+			console.log(e);
+		}
+
+		// Get manager
 		const manager = harvest.manager.PoolManager.allPastPools(signer ? signer : provider);
-	
-		this.setState({provider, signer, manager});
-		
-		// get the user address
-		const address = signer.getAddress()
-		  .then((address) => this.setState({address}));
 
-		console.log({provider, signer, manager, address});	
+		// Get the user's address
+		const address = await signer.getAddress();
 
+		this.setState({ provider, signer, manager, address });
+		console.log({ provider, signer, manager, address });
 	}
-	
-	async connectMetamask() {
-		const provider =  detectEthereumProvider()
-			.then((provider) => {
-				window.ethereum.enable()
-					.then(() => this.setProvider(provider));
-			});
 
-		console.log(provider);
-		return provider;
-	}
-	
-	
-	truncateEthAddress(Address) {
-		let truncatedAddress = '';
+	// truncateEthAddress(Address) {
+	// 	let truncatedAddress = '';
 
-		truncatedAddress = Address.slice(0,12) + " ... ";
-		truncatedAddress = truncatedAddress + Address.slice(38,42);
+	// 	truncatedAddress = Address.slice(0, 12) + " ... ";
+	// 	truncatedAddress = truncatedAddress + Address.slice(38, 42);
 
-		return truncatedAddress;
-	}
+	// 	return truncatedAddress;
+	// }
 
 	async getTokenPrice(tokenName) {
-
 		const tokenDetails = this.assetData.assetByName("FARM");
 		const priceOracle = Gecko.coingecko();
 		const tokenPrice = await priceOracle.getPrice(tokenDetails.address);
@@ -136,29 +144,27 @@ export class DashboardPage extends Component {
 	}
 
 	async getBalances() {
-		const man = await PoolManager.allPastPools(this.state.provider);
-		const summaries = await man.summary(this.state.address);
-		const underlyings = await man.underlying(this.state.address, true);
-		
-		console.log(this.state.address);
-		console.log(this.state.provider);
+		const { address, provider } = this.state;
+		const man = await PoolManager.allPastPools(provider);
+		const summaries = await man.summary(address);
+		const underlyings = await man.underlying(address, true);
 
-		
 		let totalRewards = ethers.BigNumber.from(0);
 		let totalValue = ethers.BigNumber.from(0);
 		let totalUnstaked = ethers.BigNumber.from(0);
 		let totalStaked = ethers.BigNumber.from(0);
-		let farmPosition = {};
 
 		const positions = summaries
 			.map(utils.prettyPosition)
 			.filter((p) => p.earnedRewards !== '0.0' || p.stakedBalance !== '0.0');
-		
-		farmPosition = positions.find( ({name}) => name === 'FARM');
+		const farmPosition = positions.find(({ name }) => name === 'FARM');
 
-		let idleToken = farmPosition.unstakedBalance;
-		let stakedToken = farmPosition.stakedBalance;
-		
+		if (!farmPosition) {
+			return;
+		}
+		const idleToken = _.get(farmPosition, 'unstakedBalance', 0);
+		const stakedToken = _.get(farmPosition, 'stakedBalance', 0);
+
 		totalUnstaked.add(parseInt(idleToken));
 		totalStaked.add(parseInt(stakedToken));
 
@@ -168,9 +174,7 @@ export class DashboardPage extends Component {
 			totalValue = totalValue.add(pos.summary.usdValueOf);
 		});
 
-		
-
-		// combine all underlying positions	
+		// combine all underlying positions
 		let aggregateUnderlyings = new UnderlyingBalances();
 
 		underlyings.reduce((acc, next) => {
@@ -178,38 +182,39 @@ export class DashboardPage extends Component {
 		}, aggregateUnderlyings);
 
 		aggregateUnderlyings = aggregateUnderlyings
-		  .toList()
-		  .filter((underlying) => !underlying.balance.isZero())
-		  .map((u) => {
-			  return {
-			  name: u.asset.name,
-			  balance: ethers.utils.formatUnits(u.balance, u.asset.decimals)};
-		  });
+			.toList()
+			.filter((underlying) => !underlying.balance.isZero())
+			.map((u) => {
+				return {
+					name: u.asset.name,
+					balance: ethers.utils.formatUnits(u.balance, u.asset.decimals)
+				};
+			});
 
 		const output = {
-		  positions,
-		  totalRewards: ethers.utils.formatUnits(totalRewards, ETH_DECIMAL).toString(),
-		  totalValue: totalValue.toString(),
-		  underlyings: aggregateUnderlyings
+			positions,
+			totalRewards: ethers.utils.formatUnits(totalRewards, ETH_DECIMAL).toString(),
+			totalValue: totalValue.toString(),
+			underlyings: aggregateUnderlyings
 		};
 
 		console.log(output);
 
 		let farmTokenPrice = 0;
 		let ethTokenPrice = 0;
-	
+
 		const tokenDetails = assetData.assetByName("FARM");
 		const priceOracle = Gecko.coingecko();
 
-		farmTokenPrice = await priceOracle.getPrice(tokenDetails.address).then( (price) => {
-			 return price.toNumber();
+		farmTokenPrice = await priceOracle.getPrice(tokenDetails.address).then((price) => {
+			return price.toNumber();
 		});
 
-		ethTokenPrice = await priceOracle.getPrice('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2').then( (price) => {
+		ethTokenPrice = await priceOracle.getPrice('0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2').then((price) => {
 			return price.toNumber();
-	   });
+		});
 
-		this.setState({ 
+		this.setState({
 			positions: positions,
 			underlyings: aggregateUnderlyings,
 			totalValue: utils.prettyMoney(totalValue),
@@ -227,35 +232,32 @@ export class DashboardPage extends Component {
 		});
 	}
 
-
 	actionLinkOpenHarvestFi() {
-		window.open("https://harvest.finance","_blank");
+		window.open("https://harvest.finance", "_blank");
 	}
 
 	render() {
-
-		if (this.state.provider) {
-			this.getBalances();
-		}
-
 		// Log the table
 		return (
 			<React.Fragment>
 				{/* Dashboard Header */}
 				<Pane className="header" display="flex" justifyContent="center" padding={majorScale(2)}>
 					<Pane width={CURRENT_SCREENSIZE}>
-						<Pane justifyContent="center" >
-							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center"  marginBottom={majorScale(3)}>								
-								<Heading size={500} color="#F2C94C" paddingTop={majorScale(2)} marginBottom={majorScale(1)}>
-									<Link href="" color="green" target="_blank." rel="noopener noreferrer">{this.state.address}</Link>
-								</Heading>
-							</Pane>
+						<Pane justifyContent="center">
+							{/* Show address */}
+							{this.state.address && (
+								<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center" marginBottom={majorScale(3)}>
+									<Heading size={500} color="#F2C94C" paddingTop={majorScale(2)} marginBottom={majorScale(1)}>
+										<Link href="" color="green" target="_blank." rel="noopener noreferrer">{GeneralHelper.truncateAddress(this.state.address)}</Link>
+									</Heading>
+								</Pane>
+							)}
 							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center" marginBottom={majorScale(2)}>
-								<Button width={200} appearance="primary" justifyContent="center" intent="success" iconBefore={DollarIcon} onClick={this.actionLinkOpenHarvestFi.bind(this)}>Go to Harvest.finance</Button>
+								<Button width={200} appearance="primary" justifyContent="center" intent="success" iconBefore={DollarIcon} onClick={() => this.actionLinkOpenHarvestFi()}>Go to Harvest.finance</Button>
 							</Pane>
 						</Pane>
 						<Pane elevation={1} background="white" justifyContent="flex" >
-							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center" marginBottom={majorScale(2)}>	
+							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center" marginBottom={majorScale(2)}>
 								<Pane
 									display="flex"
 									alignItems="center"
@@ -267,13 +269,12 @@ export class DashboardPage extends Component {
 								>
 									<Pane marginBottom={majorScale(1)}>
 										<Heading size={100}>Total Position Value</Heading>
-										
 									</Pane>
 									<Heading className="hf-number" color="#219653" size={800} width={"auto"}> {this.state.totalValue} </Heading>
 
-								</Pane>	
-							</Pane>		
-							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center" marginBottom={majorScale(2)}>	
+								</Pane>
+							</Pane>
+							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center" marginBottom={majorScale(2)}>
 								<Pane
 									display="flex"
 									alignItems="center"
@@ -284,18 +285,18 @@ export class DashboardPage extends Component {
 									minWidth={200}
 								>
 									<Pane marginBottom={majorScale(1)}>
-										<Heading size={100}>$FARM Price</Heading>										
+										<Heading size={100}>$FARM Price</Heading>
 									</Pane>
-									
-									<Heading className="hf-number" color="#219653" size={600} width={"auto"} marginBottom={minorScale(1)}> 
-										{ (this.state.farmPrice.pretty ? this.state.farmPrice.pretty : 0 ) }
+
+									<Heading className="hf-number" color="#219653" size={600} width={"auto"} marginBottom={minorScale(1)}>
+										{(this.state.farmPrice.pretty ? this.state.farmPrice.pretty : 0)}
 									</Heading>
-									
+
 									<Heading className="hf-number hf-number-sm" size={100} width={"auto"} color="#BDBDBD">
-										1 ≈ Ξ{parseFloat( ( this.state.ethPrice ? (this.state.farmPrice.raw / this.state.ethPrice.raw) : 0)).toFixed(NUM_DECIMAL)}
+										1 ≈ Ξ{parseFloat((this.state.ethPrice ? (this.state.farmPrice.raw / this.state.ethPrice.raw) : 0)).toFixed(NUM_DECIMAL)}
 									</Heading>
-									
-								</Pane>														
+
+								</Pane>
 								<Pane
 									display="flex"
 									alignItems="center"
@@ -307,14 +308,14 @@ export class DashboardPage extends Component {
 								>
 									<Pane marginBottom={majorScale(1)}>
 										<Heading size={100}>Current $FARM Earnings</Heading>
-										
+
 									</Pane>
-									<Heading className="hf-number" color="#219653" size={600} width={"auto"} marginBottom={minorScale(1)}> 
-										{this.state.totalRewards.toFixed(NUM_DECIMAL)} 
+									<Heading className="hf-number" color="#219653" size={600} width={"auto"} marginBottom={minorScale(1)}>
+										{this.state.totalRewards.toFixed(NUM_DECIMAL)}
 									</Heading>
 
 									<Heading className="hf-number hf-number-sm" size={100} width={"auto"} color="#BDBDBD">
-										≈ ${parseFloat( ( this.state.farmPrice ? (this.state.farmPrice.raw * this.state.totalRewards) : 0)).toFixed(NUM_DECIMAL)}
+										≈ ${parseFloat((this.state.farmPrice ? (this.state.farmPrice.raw * this.state.totalRewards) : 0)).toFixed(NUM_DECIMAL)}
 									</Heading>
 								</Pane>
 								<Pane
@@ -328,17 +329,17 @@ export class DashboardPage extends Component {
 								>
 									<Pane marginBottom={majorScale(1)}>
 										<Heading size={100}>Staked $FARM</Heading>
-										
+
 									</Pane>
 									<Heading className="hf-number" color="#219653" size={600} marginBottom={minorScale(1)}>
-										{parseFloat(( this.state.totalStaked ? this.state.totalStaked : 0)).toFixed(NUM_DECIMAL)}
+										{parseFloat((this.state.totalStaked ? this.state.totalStaked : 0)).toFixed(NUM_DECIMAL)}
 									</Heading>
 
 									<Heading className="hf-number hf-number-sm" size={100} width={"auto"} color="#BDBDBD">
-										≈ ${parseFloat( ( this.state.ethPrice ? (this.state.farmPrice.raw * this.state.totalStaked) : 0)).toFixed(NUM_DECIMAL)}
-									</Heading>								
+										≈ ${parseFloat((this.state.ethPrice ? (this.state.farmPrice.raw * this.state.totalStaked) : 0)).toFixed(NUM_DECIMAL)}
+									</Heading>
 								</Pane>
-								<Pane	
+								<Pane
 									display="flex"
 									alignItems="center"
 									flexDirection="column"
@@ -349,25 +350,25 @@ export class DashboardPage extends Component {
 								>
 									<Pane marginBottom={majorScale(1)}>
 										<Heading size={100}>Idle $FARM</Heading>
-										
+
 									</Pane>
 									<Heading className="hf-number" color="#219653" size={600} marginBottom={minorScale(1)}>
-										{parseFloat(( this.state.totalUnstaked ? this.state.totalUnstaked : 0)).toFixed(NUM_DECIMAL)}
+										{parseFloat((this.state.totalUnstaked ? this.state.totalUnstaked : 0)).toFixed(NUM_DECIMAL)}
 									</Heading>
 
 									<Heading className="hf-number hf-number-sm" size={100} width={"auto"} color="#BDBDBD">
-										≈ ${parseFloat(( this.state.ethPrice ? this.state.farmPrice.raw * this.state.totalUnstaked : 0 )).toFixed(NUM_DECIMAL)}
-									</Heading>				
+										≈ ${parseFloat((this.state.ethPrice ? this.state.farmPrice.raw * this.state.totalUnstaked : 0)).toFixed(NUM_DECIMAL)}
+									</Heading>
 								</Pane>
 							</Pane>
-							
+
 							{/* Dashboard Content */}
 							<Pane display="flex" justifyContent="center" flexDirection="column" paddingLeft={majorScale(5)} paddingRight={majorScale(5)} paddingBottom={majorScale(5)} width={CURRENT_SCREENSIZE}>
 
 								{/* Pools table */}
 								<Pane marginBottom={majorScale(2)}>
 
-									{/* Table label */}	
+									{/* Table label */}
 									<Pane display="flex" flexDirection="row" >
 										<Pane flex={0.5} justifyContent="center">
 											<Heading size={200} marginTop={0} textTransform="uppercase">Pools participated</Heading>
@@ -398,11 +399,11 @@ export class DashboardPage extends Component {
 											</Table.TextHeaderCell>
 											<Table.TextHeaderCell textAlign="right"	>
 												Pool % Share
-											</Table.TextHeaderCell>																						
+											</Table.TextHeaderCell>
 										</Table.Head>
-										<Table.Body height={"auto"}>	
+										<Table.Body height={"auto"}>
 
-											{this.state.positions.map( pos =>
+											{this.state.positions.map(pos =>
 												<Table.Row key={`pos-${pos.name}`}>
 													<Table.TextCell >
 														<Paragraph size={300}>{pos.name}</Paragraph>
@@ -411,7 +412,7 @@ export class DashboardPage extends Component {
 													<Table.TextCell isNumber textAlign="right">
 														<Paragraph size={300}>{parseFloat(pos.earnedRewards).toFixed(8)}</Paragraph>
 														<Heading size={100} color="#BDBDBD">
-															≈ ${(pos.earnedRewards*this.state.farmPrice.raw).toFixed(NUM_DECIMAL)}
+															≈ ${(pos.earnedRewards * this.state.farmPrice.raw).toFixed(NUM_DECIMAL)}
 														</Heading>
 													</Table.TextCell>
 													<Table.TextCell isNumber textAlign="right">
@@ -419,7 +420,7 @@ export class DashboardPage extends Component {
 															{parseFloat(pos.unstakedBalance).toFixed(8)}
 														</Paragraph>
 													</Table.TextCell>
-													<Table.TextCell isNumber textAlign="right">		
+													<Table.TextCell isNumber textAlign="right">
 														<Paragraph size={300}>{pos.usdValueOf}</Paragraph>
 													</Table.TextCell>
 													<Table.TextCell isNumber textAlign="right">
@@ -430,24 +431,24 @@ export class DashboardPage extends Component {
 
 										</Table.Body>
 									</Table>
-								</Pane>									
-							
+								</Pane>
+
 							</Pane>
 
 						</Pane>
 					</Pane>
 				</Pane>
-				
+
 				<Pane display="flex" flexDirection="column" alignItems="center" justifyContent="center">
 					<Heading marginTop={majorScale(4)} size={500}>Made for the Farmers 🚜 with 💖</Heading>
 					<Pane marginTop={majorScale(1)} size={300} textAlign="center">
-						
+
 						<Heading size={100} color="#888888">0xA4050d47E3435Dc298462d009426C040668F4297</Heading>
 						<Paragraph size="300" marginBottom={majorScale(1)} color="#BDBDBD">(Designed by zapata)</Paragraph>
-						
+
 						<Heading size={100} color="#888888">0x84BB14595Fd30a53cbE18e68085D42645901D8B6</Heading>
 						<Paragraph size="300" marginBottom={majorScale(1)} color="#BDBDBD">(HaFi Contract API, Thanks Byron-McKeeby)</Paragraph>
-						
+
 					</Pane>
 				</Pane>
 
