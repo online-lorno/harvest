@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import PropTypes from 'prop-types';
 import {
 	// components
@@ -90,13 +90,7 @@ export class DashboardPage extends Component {
 		totalValue: 0,
 		totalRewards: 0,
 		usdValue: 0
-	});
-	let dataPools = [];
-	if (!state.selectedPool || state.selectedPool.value === '-') {
-		dataPools = data.pools;
-	} else {
-		dataPools = [data.pools.find(o => o.id === state.selectedPool.value)];
-	}
+	};
 
 	componentDidMount(){
 		
@@ -130,7 +124,7 @@ export class DashboardPage extends Component {
 
 		console.log({provider, signer, manager, address});	
 
-	  }
+	}
 	
 	async connectMetamask() {
 		const provider =  detectEthereumProvider()
@@ -252,16 +246,8 @@ export class DashboardPage extends Component {
 				raw: parseFloat(ethers.utils.formatUnits(ethTokenPrice, 2))
 			}
 		});
+	}
 
-	const chartData = React.useMemo(
-		() => [
-			{
-				label: 'Series 1',
-				data: [[0, 1], [1, 2], [2, 4], [3, 2], [4, 7]]
-			}
-		],
-		[]
-	);
 
 	actionLinkOpenHarvestFi() {
 		window.open("https://harvest.finance","_blank");
@@ -274,14 +260,6 @@ export class DashboardPage extends Component {
 			pools,
 			selectedPool
 		} = this.state;
-
-	const axes = React.useMemo(
-		() => [
-			{ primary: true, type: 'linear', position: 'bottom' },
-			{ type: 'linear', position: 'left' }
-		],
-		[]
-	);
 
 		if (this.state.provider) {
 			this.getBalances();
@@ -429,64 +407,64 @@ export class DashboardPage extends Component {
 									</Pane>
 								</Pane>
 
-									{/* Pool List */}
-									<Pane>
-										<Table marginTop={majorScale(3)}>
-											<Table.Head>
-												<Table.TextHeaderCell>
-													Pool
-												</Table.TextHeaderCell>
-												<Table.TextHeaderCell textAlign="right"	>
-													Farm Earned
-												</Table.TextHeaderCell>
-												<Table.TextHeaderCell textAlign="right"	>
-													Unstaked
-												</Table.TextHeaderCell>
-												<Table.TextHeaderCell textAlign="right"	>
-													Your Share
-												</Table.TextHeaderCell>
-												<Table.TextHeaderCell textAlign="right"	>
-													Pool % Share
-												</Table.TextHeaderCell>																						
-											</Table.Head>
-											<Table.Body height={"auto"}>	
+								{/* Pool List */}
+								<Pane>
+									<Table marginTop={majorScale(3)}>
+										<Table.Head>
+											<Table.TextHeaderCell>
+												Pool
+											</Table.TextHeaderCell>
+											<Table.TextHeaderCell textAlign="right"	>
+												Farm Earned
+											</Table.TextHeaderCell>
+											<Table.TextHeaderCell textAlign="right"	>
+												Unstaked
+											</Table.TextHeaderCell>
+											<Table.TextHeaderCell textAlign="right"	>
+												Your Share
+											</Table.TextHeaderCell>
+											<Table.TextHeaderCell textAlign="right"	>
+												Pool % Share
+											</Table.TextHeaderCell>																						
+										</Table.Head>
+										<Table.Body height={"auto"}>	
 
-												{this.state.positions.map( pos =>
-													<Table.Row key={`pos-${pos.name}`}>
-														<Table.TextCell >
-															<Paragraph size={300}>{pos.name}</Paragraph>
-															<Heading size={100} color="#BDBDBD">Deposit {pos.name}</Heading>
-														</Table.TextCell>
-														<Table.TextCell isNumber textAlign="right">
-															<Paragraph size={300}>{parseFloat(pos.earnedRewards).toFixed(8)}</Paragraph>
-															<Heading size={100} color="#BDBDBD">
-																≈ ${(pos.earnedRewards*this.state.farmPrice.raw).toFixed(NUM_DECIMAL)}
-															</Heading>
-														</Table.TextCell>
-														<Table.TextCell isNumber textAlign="right">
-															<Paragraph size={300}>
-																{parseFloat(pos.unstakedBalance).toFixed(8)}
-															</Paragraph>
-														</Table.TextCell>
-														<Table.TextCell isNumber textAlign="right">		
-															<Paragraph size={300}>{pos.usdValueOf}</Paragraph>
-														</Table.TextCell>
-														<Table.TextCell isNumber textAlign="right">
-															<Paragraph size={300}>{pos.percentOfPool}</Paragraph>
-														</Table.TextCell>
-													</Table.Row>
-												)}
+											{this.state.positions.map( pos =>
+												<Table.Row key={`pos-${pos.name}`}>
+													<Table.TextCell >
+														<Paragraph size={300}>{pos.name}</Paragraph>
+														<Heading size={100} color="#BDBDBD">Deposit {pos.name}</Heading>
+													</Table.TextCell>
+													<Table.TextCell isNumber textAlign="right">
+														<Paragraph size={300}>{parseFloat(pos.earnedRewards).toFixed(8)}</Paragraph>
+														<Heading size={100} color="#BDBDBD">
+															≈ ${(pos.earnedRewards*this.state.farmPrice.raw).toFixed(NUM_DECIMAL)}
+														</Heading>
+													</Table.TextCell>
+													<Table.TextCell isNumber textAlign="right">
+														<Paragraph size={300}>
+															{parseFloat(pos.unstakedBalance).toFixed(8)}
+														</Paragraph>
+													</Table.TextCell>
+													<Table.TextCell isNumber textAlign="right">		
+														<Paragraph size={300}>{pos.usdValueOf}</Paragraph>
+													</Table.TextCell>
+													<Table.TextCell isNumber textAlign="right">
+														<Paragraph size={300}>{pos.percentOfPool}</Paragraph>
+													</Table.TextCell>
+												</Table.Row>
+											)}
 
-											</Table.Body>
-										</Table>
-									</Pane>
-									
+										</Table.Body>
+									</Table>
 								</Pane>
-
+									
 							</Pane>
+
 						</Pane>
 					</Pane>
 				</Pane>
+				
 				<Pane display="flex" flexDirection="column" alignItems="center" justifyContent="center">
 					<Heading marginTop={majorScale(4)} size={500}>Made for the Farmers 🚜 with 💖</Heading>
 					<Paragraph marginTop={majorScale(1)} size={300}>
@@ -498,6 +476,7 @@ export class DashboardPage extends Component {
 		);
 	}
 }
+
 
 DashboardPage.propTypes = {
 	reset: PropTypes.func.isRequired
