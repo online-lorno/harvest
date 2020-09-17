@@ -26,7 +26,8 @@ import {
 	majorScale,
 	minorScale,
 	Label,
-	Table
+	Table,
+	LabTestIcon
 } from 'evergreen-ui';
 
 import data from './../../data.json';
@@ -83,8 +84,8 @@ export class DashboardPage extends Component {
 		farmPrice: 0,
 		ethPrice: 0,
 		totalEarnedRewards: 0,
-		totalUnstakedReward: 0,
-		totalStakedReward: 0,
+		totalUnstaked: 0,
+		totalStaked: 0,
 		totalValue: 0,
 		totalRewards: 0,
 		usdValue: 0
@@ -161,20 +162,35 @@ export class DashboardPage extends Component {
 		
 		console.log(this.state.address);
 		console.log(this.state.provider);
-		console.log(summaries);
+
 		
 		let totalRewards = ethers.BigNumber.from(0);
 		let totalValue = ethers.BigNumber.from(0);
+		let totalUnstaked = ethers.BigNumber.from(0);
+		let totalStaked = ethers.BigNumber.from(0);
+		let farmPosition = {};
+
 		const positions = summaries
 			.map(utils.prettyPosition)
 			.filter((p) => p.earnedRewards !== '0.0' || p.stakedBalance !== '0.0');
-	  
+		
+		farmPosition = positions.find( ({name}) => name === 'FARM');
+
+		let idleToken = farmPosition.unstakedBalance;
+		let stakedToken = farmPosition.stakedBalance;
+		
+		totalUnstaked.add(parseInt(idleToken));
+		totalStaked.add(parseInt(stakedToken));
+
+		// totalUnstaked.add(0);
 		summaries.forEach((pos) => {
-		  totalRewards = totalRewards.add(pos.summary.earnedRewards);
-		  totalValue = totalValue.add(pos.summary.usdValueOf);
+			totalRewards = totalRewards.add(pos.summary.earnedRewards);
+			totalValue = totalValue.add(pos.summary.usdValueOf);
 		});
-	  
-		// combine all underlying positions
+
+		
+
+		// combine all underlying positions	
 		let aggregateUnderlyings = new UnderlyingBalances();
 	  
 		underlyings.reduce((acc, next) => {
@@ -198,6 +214,7 @@ export class DashboardPage extends Component {
 		};
 
 		console.log(output);
+
 		let farmTokenPrice = 0;
 		let ethTokenPrice = 0;
 	
@@ -217,6 +234,8 @@ export class DashboardPage extends Component {
 			underlyings: aggregateUnderlyings,
 			totalValue: utils.prettyMoney(totalValue),
 			totalRewards: parseFloat(ethers.utils.formatUnits(totalRewards, ETH_DECIMAL)),
+			totalUnstaked: idleToken,
+			totalStaked: stakedToken,
 			farmPrice: {
 				pretty: utils.prettyMoney(farmTokenPrice),
 				raw: parseFloat(ethers.utils.formatUnits(farmTokenPrice, 2))
@@ -306,7 +325,7 @@ export class DashboardPage extends Component {
 									</Heading>
 									
 									<Heading className="hf-number hf-number-sm" size={100} width={"auto"} color="#BDBDBD">
-										1 ≈ {parseFloat( ( this.state.ethPrice ? (this.state.farmPrice.raw / this.state.ethPrice.raw) : 0)).toFixed(NUM_DECIMAL)}Ξ
+										1 ≈ Ξ{parseFloat( ( this.state.ethPrice ? (this.state.farmPrice.raw / this.state.ethPrice.raw) : 0)).toFixed(NUM_DECIMAL)}
 									</Heading>
 									
 								</Pane>														
@@ -323,9 +342,11 @@ export class DashboardPage extends Component {
 										<Heading size={100}>Current $FARM Earnings</Heading>
 										
 									</Pane>
-									<Heading className="hf-number" color="#219653" size={600} width={"auto"} marginBottom={minorScale(1)}> {this.state.totalRewards.toFixed(NUM_DECIMAL)} </Heading>
+									<Heading className="hf-number" color="#219653" size={600} width={"auto"} marginBottom={minorScale(1)}> 
+										{this.state.totalRewards.toFixed(NUM_DECIMAL)} 
+									</Heading>
 
-									<Heading className="hf-number" size={100} width={"auto"} color="#BDBDBD">
+									<Heading className="hf-number hf-number-sm" size={100} width={"auto"} color="#BDBDBD">
 										≈ ${parseFloat( ( this.state.farmPrice ? (this.state.farmPrice.raw * this.state.totalRewards) : 0)).toFixed(NUM_DECIMAL)}
 									</Heading>
 								</Pane>
@@ -343,11 +364,11 @@ export class DashboardPage extends Component {
 										
 									</Pane>
 									<Heading className="hf-number" color="#219653" size={600} marginBottom={minorScale(1)}>
-										{this.state.totalStakedReward.toFixed(NUM_DECIMAL)}
+										{parseFloat(( this.state.totalStaked ? this.state.totalStaked : 0)).toFixed(NUM_DECIMAL)}
 									</Heading>
 
-									<Heading className="hf-number" size={100} width={"auto"} color="#BDBDBD">
-										≈ ${parseFloat( ( this.state.ethPrice ? (this.state.farmPrice.raw * this.state.totalStakedReward) : 0)).toFixed(NUM_DECIMAL)}
+									<Heading className="hf-number hf-number-sm" size={100} width={"auto"} color="#BDBDBD">
+										≈ ${parseFloat( ( this.state.ethPrice ? (this.state.farmPrice.raw * this.state.totalStaked) : 0)).toFixed(NUM_DECIMAL)}
 									</Heading>								
 								</Pane>
 								<Pane	
@@ -364,11 +385,11 @@ export class DashboardPage extends Component {
 										
 									</Pane>
 									<Heading className="hf-number" color="#219653" size={600} marginBottom={minorScale(1)}>
-										{this.state.totalUnstakedReward.toFixed(NUM_DECIMAL)}
+										{parseFloat(( this.state.totalUnstaked ? this.state.totalUnstaked : 0)).toFixed(NUM_DECIMAL)}
 									</Heading>
 
-									<Heading className="hf-number" size={100} width={"auto"} color="#BDBDBD">
-										≈ ${parseFloat( ( this.state.ethPrice ? (this.state.farmPrice.raw * this.state.totalUnstakedReward) : 0)).toFixed(NUM_DECIMAL)}
+									<Heading className="hf-number hf-number-sm" size={100} width={"auto"} color="#BDBDBD">
+										≈ ${parseFloat(( this.state.ethPrice ? this.state.farmPrice.raw * this.state.totalUnstaked : 0 )).toFixed(NUM_DECIMAL)}
 									</Heading>				
 								</Pane>
 							</Pane>
@@ -386,8 +407,8 @@ export class DashboardPage extends Component {
 											<Text size={300} color="#BDBDBD">These are the pools that you have staked in.</Text>
 										</Pane>
 										<Pane display="flex" flex={0.5} flexDirection="row" justifyContent="flex-end">
-											<Button marginRight={minorScale(1)} appearance="primary" intent="success">Claim all and Reinvest</Button>
-											<Button appearance="primary" intent="success">Claim all rewards</Button>
+											{/* <Button marginRight={minorScale(1)} appearance="primary" intent="success">Claim all and Reinvest</Button>
+											<Button appearance="primary" intent="success">Claim all rewards</Button> */}
 										</Pane>
 									</Pane>
 
@@ -398,16 +419,16 @@ export class DashboardPage extends Component {
 												<Table.TextHeaderCell>
 													Pool
 												</Table.TextHeaderCell>
-												<Table.TextHeaderCell>
+												<Table.TextHeaderCell textAlign="right"	>
 													Earned
 												</Table.TextHeaderCell>
-												<Table.TextHeaderCell>
+												<Table.TextHeaderCell textAlign="right"	>
 													Unstaked
 												</Table.TextHeaderCell>
-												<Table.TextHeaderCell>
+												<Table.TextHeaderCell textAlign="right"	>
 													Your Share
 												</Table.TextHeaderCell>
-												<Table.TextHeaderCell>
+												<Table.TextHeaderCell textAlign="right"	>
 													Pool % Share
 												</Table.TextHeaderCell>																						
 											</Table.Head>
@@ -415,21 +436,25 @@ export class DashboardPage extends Component {
 
 												{this.state.positions.map( pos =>
 													<Table.Row key={`pos-${pos.name}`}>
-														<Table.TextCell>
+														<Table.TextCell >
 															<Paragraph size={300}>{pos.name}</Paragraph>
 															<Heading size={100} color="#BDBDBD">Deposit {pos.name}</Heading>
 														</Table.TextCell>
-														<Table.TextCell isNumber>
+														<Table.TextCell isNumber textAlign="right">
 															<Paragraph size={300}>{parseFloat(pos.earnedRewards).toFixed(8)}</Paragraph>
-															<Heading size={100} color="#BDBDBD">≈ ${(pos.earnedRewards*this.state.farmPrice.raw).toFixed(NUM_DECIMAL)}</Heading>
+															<Heading size={100} color="#BDBDBD">
+																≈ ${(pos.earnedRewards*this.state.farmPrice.raw).toFixed(NUM_DECIMAL)}
+															</Heading>
 														</Table.TextCell>
-														<Table.TextCell isNumber>
-															<Paragraph size={300}>{pos.unstakedBalance}</Paragraph>
+														<Table.TextCell isNumber textAlign="right">
+															<Paragraph size={300}>
+																{parseFloat(pos.unstakedBalance).toFixed(8)}
+															</Paragraph>
 														</Table.TextCell>
-														<Table.TextCell isNumber>		
+														<Table.TextCell isNumber textAlign="right">		
 															<Paragraph size={300}>{pos.usdValueOf}</Paragraph>
 														</Table.TextCell>
-														<Table.TextCell isNumber>
+														<Table.TextCell isNumber textAlign="right">
 															<Paragraph size={300}>{pos.percentOfPool}</Paragraph>
 														</Table.TextCell>
 													</Table.Row>
