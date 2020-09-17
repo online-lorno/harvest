@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
-import React, { useState, useEffect, Component } from 'react';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import {
 	// components
@@ -10,26 +10,13 @@ import {
 	Heading,
 	Paragraph,
 	Strong,
-	Popover,
-	Menu,
-	Tablist,
-	Tab,
-	Badge,
-	Pill,
-	//icons
-	PeopleIcon,
-	AddIcon,
+	//Icons
 	DollarIcon,
-	ShareIcon,
-	CaretDownIcon,
 	//utils
 	majorScale,
 	minorScale,
-	Label,
-	Table,
-	LabTestIcon
+	Table
 } from 'evergreen-ui';
-import { Chart } from 'react-charts';
 
 import data from './../../data.json';
 
@@ -47,7 +34,6 @@ import Gecko from '../../submodules/dashboard/src/lib/gecko';
 import assetData from '../../submodules/dashboard/src/lib/data/deploys';
 
 import {ethers} from 'ethers';
-import connect from 'react-redux/lib/connect/connect';
 
 const {utils} = harvest;
 
@@ -254,12 +240,6 @@ export class DashboardPage extends Component {
 	}
 
 	render() {
-		const {
-			id,
-			selectedTabIndex,
-			pools,
-			selectedPool
-		} = this.state;
 
 		if (this.state.provider) {
 			this.getBalances();
@@ -273,7 +253,7 @@ export class DashboardPage extends Component {
 					<Pane width={CURRENT_SCREENSIZE}>
 						<Pane justifyContent="center" >
 							<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center"  marginBottom={majorScale(3)}>								
-								<Heading size={500} color="#F2C94C" marginBottom={majorScale(2)}>
+								<Heading size={500} color="#F2C94C" paddingTop={majorScale(2)} marginBottom={majorScale(1)}>
 									<Link href="" color="green" target="_blank." rel="noopener noreferrer">{this.state.address}</Link>
 								</Heading>
 							</Pane>
@@ -389,15 +369,15 @@ export class DashboardPage extends Component {
 							</Pane>
 							
 							{/* Dashboard Content */}
-							<Pane display="flex" justifyContent="center" paddingY={majorScale(2)}>
+							<Pane display="flex" justifyContent="center" flexDirection="column" paddingLeft={majorScale(5)} paddingRight={majorScale(5)} paddingBottom={majorScale(5)} width={CURRENT_SCREENSIZE}>
 
 								{/* Pools table */}
-								<Pane marginLeft={majorScale(5)} marginRight={majorScale(5)} marginBottom={majorScale(5)} width={CURRENT_SCREENSIZE}>
+								<Pane marginBottom={majorScale(2)}>
 
-									{/* Table label */}
+									{/* Table label */}	
 									<Pane display="flex" flexDirection="row" >
 										<Pane flex={0.5} justifyContent="center">
-											<Heading size={400} marginTop={0} textTransform="uppercase">Pools participated</Heading>
+											<Heading size={200} marginTop={0} textTransform="uppercase">Pools participated</Heading>
 											<Text size={300} color="#BDBDBD">These are the pools that you have staked in.</Text>
 										</Pane>
 										<Pane display="flex" flex={0.5} flexDirection="row" justifyContent="flex-end">
@@ -408,8 +388,8 @@ export class DashboardPage extends Component {
 								</Pane>
 
 								{/* Pool List */}
-								<Pane>
-									<Table marginTop={majorScale(3)}>
+								<Pane >
+									<Table paddingBottom={majorScale(5)}>
 										<Table.Head>
 											<Table.TextHeaderCell>
 												Pool
@@ -457,8 +437,8 @@ export class DashboardPage extends Component {
 
 										</Table.Body>
 									</Table>
-								</Pane>
-									
+								</Pane>									
+							
 							</Pane>
 
 						</Pane>
@@ -467,9 +447,15 @@ export class DashboardPage extends Component {
 				
 				<Pane display="flex" flexDirection="column" alignItems="center" justifyContent="center">
 					<Heading marginTop={majorScale(4)} size={500}>Made for the Farmers 🚜 with 💖</Heading>
-					<Paragraph marginTop={majorScale(1)} size={300}>
-						<Strong color="green">0xA4050d47E3435Dc298462d009426C040668F4297</Strong>
-					</Paragraph>
+					<Pane marginTop={majorScale(1)} size={300} textAlign="center">
+						
+						<Heading size={100} color="#888888">0xA4050d47E3435Dc298462d009426C040668F4297</Heading>
+						<Paragraph size="300" marginBottom={majorScale(1)} color="#BDBDBD">(Designed by zapata)</Paragraph>
+						
+						<Heading size={100} color="#888888">0x84BB14595Fd30a53cbE18e68085D42645901D8B6</Heading>
+						<Paragraph size="300" marginBottom={majorScale(1)} color="#BDBDBD">(HaFi Contract API, Thanks Byron-McKeeby)</Paragraph>
+						
+					</Pane>
 				</Pane>
 
 			</React.Fragment>
