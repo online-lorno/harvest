@@ -248,7 +248,7 @@ export class DashboardPage extends Component {
 							{this.state.address && (
 								<Pane display="flex" flexDirection="row" alignItems="center" justifyContent="center" marginBottom={majorScale(3)}>
 									<Heading size={500} color="#F2C94C" paddingTop={majorScale(2)} marginBottom={majorScale(1)}>
-										<Link href="" color="green" target="_blank." rel="noopener noreferrer">{GeneralHelper.truncateAddress(this.state.address)}</Link>
+										<Link href={`https://etherscan.io/address/${this.state.address}`} color="green" target="_blank." rel="noopener noreferrer">{GeneralHelper.truncateAddress(this.state.address)}</Link>
 									</Heading>
 								</Pane>
 							)}
