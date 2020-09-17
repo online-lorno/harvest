@@ -7,7 +7,7 @@
 
 /* Numbers */
 .hf-number {
-    font-family: "SF Mono", monospace;  
+    font-family: "SF Mono", "Code Saver", "Consolas", monospace !important; 
     font-feature-settings: "tnum";
 }
 
