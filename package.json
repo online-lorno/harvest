@@ -8,7 +8,7 @@
 		"build": "npm run build:development",
 		"build:development": "NODE_ENV=development node scripts/build.js",
 		"test": "node scripts/test.js",
-		"heroku-postbuild": "npm run build"
+		"heroku-postbuild": "git submodule update && npm run build"
 	},
 	"dependencies": {
 		"@babel/core": "7.9.0",
