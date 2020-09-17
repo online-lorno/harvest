@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/accessible-emoji */
-import React, { useState, useEffect } from 'react';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import {
 	// components
@@ -9,7 +9,6 @@ import {
 	Link,
 	Heading,
 	Paragraph,
-	Strong,
 	//Icons
 	DollarIcon,
 	//utils
@@ -17,7 +16,6 @@ import {
 	minorScale,
 	Table
 } from 'evergreen-ui';
-import { Chart } from 'react-charts';
 
 import data from './../../data.json';
 
@@ -80,12 +78,6 @@ export class DashboardPage extends Component {
 	};
 
 	componentDidMount(){
-		
-		// Try to connect and get balance
-		// try {
-		// 	this.connectMetamask();
-		// 	console.log(this.state.provider);
-		// } catch (e){console.log(e);}
 
 		// Try to connect
 		try{
@@ -94,7 +86,7 @@ export class DashboardPage extends Component {
 
 	}
 
-	const setProvider = provider => {
+	setProvider = provider => {
 		provider = new ethers.providers.Web3Provider(provider);
 	
 		let signer;
