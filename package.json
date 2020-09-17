@@ -5,10 +5,10 @@
 	"scripts": {
 		"start": "serve -s build",
 		"start:development": "NODE_ENV=development PORT=9000 node scripts/start.js",
-		"build": "npm run build:development",
 		"build:development": "NODE_ENV=development node scripts/build.js",
+		"build:production": "NODE_ENV=production node scripts/build.js",
 		"test": "node scripts/test.js",
-		"heroku-postbuild": "git submodule update && npm run build"
+		"heroku-postbuild": "npm run build:production"
 	},
 	"dependencies": {
 		"@babel/core": "7.9.0",
