@@ -420,7 +420,7 @@ export class DashboardPage extends Component {
 													Pool
 												</Table.TextHeaderCell>
 												<Table.TextHeaderCell textAlign="right"	>
-													Earned
+													Farm Earned
 												</Table.TextHeaderCell>
 												<Table.TextHeaderCell textAlign="right"	>
 													Unstaked
