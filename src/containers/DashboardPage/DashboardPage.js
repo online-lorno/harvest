@@ -444,7 +444,7 @@ export class DashboardPage extends Component {
 					<Pane marginTop={majorScale(1)} size={300} textAlign="center">
 
 						<Heading size={100} color="#888888">0xA4050d47E3435Dc298462d009426C040668F4297</Heading>
-						<Paragraph size="300" marginBottom={majorScale(1)} color="#BDBDBD">(Designed by zapata)</Paragraph>
+						<Paragraph size="300" marginBottom={majorScale(1)} color="#BDBDBD">(Designed and Coded by zapata)</Paragraph>
 
 						<Heading size={100} color="#888888">0x84BB14595Fd30a53cbE18e68085D42645901D8B6</Heading>
 						<Paragraph size="300" marginBottom={majorScale(1)} color="#BDBDBD">(HaFi Contract API, Thanks Byron-McKeeby)</Paragraph>
