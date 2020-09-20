@@ -441,7 +441,7 @@ export class DashboardPage extends Component {
 
 				<Pane display="flex" flexDirection="column" alignItems="center" justifyContent="center">
 					<Heading marginTop={majorScale(4)} size={500}>Made for the Farmers 🚜 with 💖</Heading>
-					<Pane marginTop={majorScale(1)} size= textAlign="center">
+					<Pane marginTop={majorScale(1)} textAlign="center">
 
 						<Heading size={100} color="#888888">0xA4050d47E3435Dc298462d009426C040668F4297</Heading>
 						<Paragraph size={300} marginBottom={majorScale(1)} color="#BDBDBD">(Designed and Coded by zapata)</Paragraph>
